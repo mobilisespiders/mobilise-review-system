@@ -29,3 +29,5 @@ backend/app/test.py
 # OS
 .DS_Store
 Thumbs.db
+
+security_data.txt
