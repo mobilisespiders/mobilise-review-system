@@ -24,9 +24,9 @@ if DATABASE_URL:
             pool_pre_ping=True,
             pool_size=5,
             max_overflow=10,
-            connect_args={
-                "ssl_verify_cert": True
-            }
+            # connect_args={
+            #     "ssl_verify_cert": True
+            # }
         )
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         db_host = (
