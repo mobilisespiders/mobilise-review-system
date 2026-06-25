@@ -1,8 +1,10 @@
 import os
 import logging
 import time
+from pathlib import Path
 from urllib.parse import urlparse
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
@@ -10,6 +12,7 @@ from app.logging_config import setup_logging
 from collections import defaultdict
 
 logger = setup_logging()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")

@@ -77,13 +77,13 @@ Backend:
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:PORT/DATABASE
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_gmail_app_password
-ALLOWED_ORIGINS=http://localhost:3000,https://your-vercel-domain.vercel.app
+ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
 Frontend:
 
 ```env
-REACT_APP_API_URL=https://your-backend-domain
+REACT_APP_API_URL=https://match-directive-conference-style.trycloudflare.com
 ```
 
 ## Step 1: Push To GitHub
@@ -195,7 +195,7 @@ build
 8. Add variable:
 
 ```env
-REACT_APP_API_URL=https://your-backend-domain
+REACT_APP_API_URL=https://match-directive-conference-style.trycloudflare.com
 ```
 
 9. Deploy.
@@ -206,13 +206,13 @@ REACT_APP_API_URL=https://your-backend-domain
 After Vercel deploys, update Railway:
 
 ```env
-ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app
+ALLOWED_ORIGINS=https://mti-review.vercel.app
 ```
 
 For local and production:
 
 ```env
-ALLOWED_ORIGINS=http://localhost:3000,https://your-vercel-domain.vercel.app
+ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
 Redeploy or restart the backend after changing this variable.

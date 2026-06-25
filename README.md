@@ -93,7 +93,7 @@ Create `backend/.env`:
 DATABASE_URL=your_database_url
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_gmail_app_password
-ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
 Run the backend:
@@ -126,7 +126,7 @@ copy .env.example .env
 Then edit `frontend/.env` if your backend is not running on:
 
 ```env
-REACT_APP_API_URL=http://localhost:8000
+REACT_APP_API_URL=https://match-directive-conference-style.trycloudflare.com
 ```
 
 Frontend URL:
@@ -135,7 +135,7 @@ Frontend URL:
 http://localhost:3000
 ```
 
-For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL.
+For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL. For the current Cloudflare Tunnel backend, use `https://match-directive-conference-style.trycloudflare.com`.
 
 ## Main Workflows
 
