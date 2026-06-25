@@ -1,374 +1,209 @@
-# 🚀 MTI – Employee Review System
+# MTI Employee Review System
 
-An internal company tool to manage employee peer reviews with automated assignment and email notifications.
+An internal tool for managing employee peer-review assignments, review submission, and email notifications.
 
----
+## Project Status
 
-# 🧠 Project Overview
+This project is under active completion. The core backend and dashboard exist, but several production-readiness tasks remain. See [plan.md](plan.md) for the implementation and go-live roadmap.
 
-This system allows:
+Known current gaps:
 
-* Employees to review colleagues
-* Admin to manage users and departments
-* Automatic assignment of reviewers
-* Email notifications to users
-* Dashboard to analyze reviews
+- Automatic assignment needs final business-rule confirmation and cleanup.
+- Manual assignment currently creates records, but email sending is disabled in the backend.
+- Frontend production build works, but the default test setup needs repair.
+- Documentation and schema are being aligned with the real codebase.
+- Authentication is not implemented yet.
 
----
+## Tech Stack
 
-# 🧱 Tech Stack
+Backend:
 
-## 🔹 Frontend
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- Uvicorn
+- Environment-based database configuration
 
-* React.js
-* Tailwind CSS
-* Axios
+Frontend:
 
-## 🔹 Backend
+- React
+- React Router
+- Axios
+- Tailwind CSS setup
+- Create React App tooling
 
-* FastAPI (Python)
-* SQLAlchemy
+Email:
 
-## 🔹 Database
+- Gmail SMTP with app password
 
-* MySQL
+Database:
 
-## 🔹 Email
+- Configured through `DATABASE_URL`
+- Final production provider still needs confirmation before go-live
 
-* Gmail SMTP (App Password)
+## Source Structure
 
----
-
-# 🗂️ Project Structure
-
-```
+```text
 MTI/
-│
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── models.py
-│   │   ├── database.py
-│   │   ├── email_utils.py
-│   ├── venv/
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Dashboard.js
-│   │   │   ├── ReviewForm.js
-│   │   ├── App.js
+  backend/
+    app/
+      main.py              # FastAPI routes and app setup
+      models.py            # SQLAlchemy models
+      schemas.py           # Pydantic request models
+      database.py          # DB engine/session setup
+      email_utils.py       # SMTP email helpers
+      logging_config.py    # App logging setup
+    requirements.txt
+    alter_db.py            # Historical migration helper
+    alter_db2.py           # Historical migration helper
+
+  frontend/
+    public/
+    src/
+      components/
+        Dashboard.js       # Admin dashboard
+        ReviewForm.js      # Review submission form
+      App.js
+      config.js
+      index.js
+    package.json
+    package-lock.json
+
+  plan.md                  # Completion and deployment roadmap
+  walkthrough.md           # Historical feature walkthrough
+  implementation_plan.md   # Historical feature plan
 ```
 
----
+Scratch/history files such as `main copy*.py`, `email_utils copy.py`, `assign.py`, and `test.py` are not considered production source.
 
-# 🧱 Prerequisites
+## Local Backend Setup
 
-Make sure you have installed:
-
-* Python (3.9+)
-* Node.js (v16+)
-* MySQL Server
-* Git
-
----
-
-# 📥 Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/mti-review-system.git
-cd mti-review-system
-```
-
----
-
-# 🗄️ Database Setup (MySQL)
-
-## Create Database
-
-```sql
-CREATE DATABASE mti_db;
-```
-
-## Create Tables
-
-```sql
--- Users
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(100),
-    department_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Departments
-CREATE TABLE departments (
-    dep_id INT AUTO_INCREMENT PRIMARY KEY,
-    dep_name VARCHAR(100)
-);
-
--- Reviews
-CREATE TABLE reviews (
-    review_id INT AUTO_INCREMENT PRIMARY KEY,
-    reviewer_id INT,
-    reviewee_id INT,
-    rating INT,
-    review_text TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Assignments
-CREATE TABLE review_assignments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    reviewer_id INT,
-    reviewee_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-# ⚙️ Backend Setup
-
-## Navigate to Backend
+From the project root:
 
 ```bash
 cd backend
-```
-
-## Create Virtual Environment
-
-```bash
 python -m venv venv
-```
-
-## Activate Environment
-
-### Windows
-
-```bash
 venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### Mac/Linux
+Create `backend/.env`:
 
-```bash
-source venv/bin/activate
+```env
+DATABASE_URL=your_database_url
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_gmail_app_password
+ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-## Install Dependencies
-
-```bash
-pip install fastapi uvicorn sqlalchemy mysql-connector-python python-dotenv
-```
-
-## Configure Database
-
-Edit `backend/app/database.py`:
-
-```python
-DATABASE_URL = "mysql+mysqlconnector://root:your_password@localhost/mti_db"
-```
-
-## Configure Email
-
-Edit `backend/app/email_utils.py`:
-
-```python
-sender_email = "your_email@gmail.com"
-app_password = "your_app_password"
-```
-
-> ⚠️ Use Gmail App Password (not your normal password)
-
-## Run Backend Server
+Run the backend:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### Backend URL
+Backend URLs:
 
-* API: http://127.0.0.1:8000
-* Docs: http://127.0.0.1:8000/docs
+- API: `http://127.0.0.1:8000`
+- Docs: `http://127.0.0.1:8000/docs`
 
----
+## Local Frontend Setup
 
-# 🎨 Frontend Setup
-
-## Navigate to Frontend
+From the project root:
 
 ```bash
 cd frontend
-```
-
-## Install Dependencies
-
-```bash
 npm install
-```
-
-## Run Frontend
-
-```bash
 npm start
 ```
 
-### Frontend URL
+Optional local API config:
 
+```bash
+copy .env.example .env
 ```
+
+Then edit `frontend/.env` if your backend is not running on:
+
+```env
+REACT_APP_API_URL=http://localhost:8000
+```
+
+Frontend URL:
+
+```text
 http://localhost:3000
 ```
 
----
+For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL.
 
-# 🔄 Application Flow
+## Main Workflows
 
-1. Open Dashboard
-   → `/dashboard`
+Admin dashboard:
 
-2. Add:
+1. Add departments.
+2. Add users with name, email, department, and employee review URL.
+3. Generate automatic review assignments.
+4. View assignments by batch.
+5. Create manual assignments.
+6. Send assignment emails once backend email behavior is finalized.
 
-   * Departments
-   * Users
+Review flow:
 
-3. Click:
-   → **Generate Assignments**
+1. Reviewer receives assigned reviewees.
+2. Reviewer opens each review link.
+3. Reviewer submits rating and feedback.
+4. Backend validates that the reviewer is allowed to review that reviewee.
 
-4. System:
+## Important Files To Ignore
 
-   * Assigns 4 reviewers per user
-   * Sends email notifications
+These files and folders should not be committed:
 
-5. Users:
+- `backend/.env`
+- `backend/venv/`
+- `backend/logs/`
+- `frontend/.env`
+- `frontend/node_modules/`
+- `frontend/build/`
+- `backend.zip`
+- scratch files such as `backend/app/main copy*.py`
 
-   * Open form
-   * Submit reviews
+## Useful Commands
 
----
-
-# 🔧 Core Features
-
-## ✅ User Management
-
-* Add / Delete Users
-
-## ✅ Department Management
-
-* Add / Delete Departments
-
-## ✅ Review System
-
-* Submit feedback
-* Rating + comments
-
-## ✅ Assignment Engine
-
-* Auto-assign 4 reviewers per user
-* No self-review
-
-## ✅ Email Automation
-
-* Sends personalized review list
-
-## ✅ Dashboard
-
-* View reviews
-* Filters (rating, user, month)
-* Stats & analytics
-
----
-
-# ⚠️ Important Notes
-
-## ❗ Do NOT Commit
-
-* `backend/venv/`
-* `frontend/node_modules/`
-* `.env`
-
----
-
-## ❗ Email Issues
-
-Make sure:
-
-* 2-Step Verification enabled
-* App Password used
-
----
-
-## ❗ Port Conflict
-
-Run backend on different port:
+Backend syntax check:
 
 ```bash
-uvicorn app.main:app --reload --port 8001
+python -m py_compile backend\app\main.py backend\app\models.py backend\app\schemas.py backend\app\database.py backend\app\email_utils.py backend\app\logging_config.py
 ```
 
----
-
-# 🧠 Quick Commands
-
-## Backend
-
-```bash
-cd backend
-venv\Scripts\activate
-uvicorn app.main:app --reload
-```
-
-## Frontend
+Frontend build:
 
 ```bash
 cd frontend
-npm install
-npm start
+npm.cmd run build
 ```
 
----
+Frontend tests:
 
-# 🎯 What This Project Achieves
+```bash
+cd frontend
+npm.cmd test -- --watchAll=false
+```
 
-* Automates peer review workflow
-* Reduces manual coordination
-* Provides structured feedback system
-* Scalable backend design
+Note: use `npm.cmd` in PowerShell if local execution policy blocks `npm.ps1`.
 
----
+## Go-Live Direction
 
-# 🚀 Future Improvements
+The intended path to production is:
 
-* Authentication (Login system)
-* Charts & analytics dashboard
-* Role-based access
-* Deployment (Cloud hosting)
+1. Stabilize backend runtime issues.
+2. Finalize assignment and email behavior.
+3. Confirm database provider and migration SQL.
+4. Move frontend API URL to environment config.
+5. Add basic tests and complete manual QA.
+6. Deploy backend, database, and frontend.
+7. Restrict CORS and protect secrets.
 
----
+See [plan.md](plan.md) for the full checklist.
 
-# 💬 TL Note
-
-If something fails:
-
-1. Check backend logs
-2. Verify API (`/docs`)
-3. Then debug frontend
-
----
-
-# ✅ Status
-
-✔ Backend Complete
-✔ Frontend Dashboard Complete
-✔ Email Automation Working
-✔ Assignment System Working
-
----
-
-# 🙌 Contributors
-
-* TL / Developer: You
-* Intern: Coming soon 🚀
-
----
+For deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).

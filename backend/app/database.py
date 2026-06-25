@@ -1,23 +1,23 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from pathlib import Path
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 
-load_dotenv()
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ENV_FILE)
 
-# Base is REQUIRED for models
+# Base is required by SQLAlchemy models.
 Base = declarative_base()
 
-# Get DB URL
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Create engine with SSL support for cloud databases (Neon, Render, etc.)
-if DATABASE_URL:
-    connect_args = {}
+engine = None
+SessionLocal = None
 
-    # PostgreSQL with sslmode in URL — SQLAlchemy handles it via the URL param
-    # For MySQL with SSL, you'd add ssl_ca etc. to connect_args
+if DATABASE_URL:
     try:
         engine = create_engine(
             DATABASE_URL,
@@ -26,22 +26,22 @@ if DATABASE_URL:
             max_overflow=10,
         )
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        print(f"✅ Database connected ({DATABASE_URL.split('@')[1].split('/')[0] if '@' in DATABASE_URL else 'local'})")
-    except Exception as e:
-        print(f"❌ DB connection failed: {e}")
-        engine = None
-        SessionLocal = None
+        db_host = (
+            DATABASE_URL.split("@", 1)[1].split("/", 1)[0]
+            if "@" in DATABASE_URL
+            else "local"
+        )
+        print(f"Database configured ({db_host})")
+    except Exception as exc:
+        print(f"DB configuration failed: {exc}")
         print("Database not configured yet")
 else:
-    print("⚠️ DATABASE_URL not set — skipping DB connection")
-    engine = None
-    SessionLocal = None
+    print("DATABASE_URL not set; skipping DB connection")
 
 
-# This function creates a new database session for each request
 def get_db():
     if SessionLocal is None:
-        raise Exception("Database not configured yet")
+        raise RuntimeError("Database not configured yet")
 
     db = SessionLocal()
     try:

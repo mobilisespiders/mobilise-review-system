@@ -52,6 +52,8 @@ function Dashboard() {
   const [filterReviewer, setFilterReviewer] = useState("");
   const [filterReviewee, setFilterReviewee] = useState("");
   const [assignmentsPerUser, setAssignmentsPerUser] = useState(4);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [isBatchSending, setIsBatchSending] = useState(false);
 
   const [activeTab, setActiveTab] = useState("Welcome");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -83,25 +85,19 @@ function Dashboard() {
   };
 
   // 🔹 Load initial data
-  useEffect(() => {
-    fetchUsers();
-    fetchDepartments();
-    fetchBatches();
-  }, []);
-
   // ================= API CALLS =================
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const res = await axios.get(`${BASE_URL}/users/`);
     setUsers(res.data);
-  };
+  }, []);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     const res = await axios.get(`${BASE_URL}/departments/`);
     setDepartments(res.data);
-  };
+  }, []);
 
-  const fetchAssignments = async (batchId) => {
+  const fetchAssignments = useCallback(async (batchId) => {
     try {
       const url = batchId
         ? `${BASE_URL}/assignments/?batch_id=${batchId}`
@@ -111,9 +107,9 @@ function Dashboard() {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
 
-  const fetchBatches = async () => {
+  const fetchBatches = useCallback(async () => {
     try {
       const res = await axios.get(`${BASE_URL}/assignment-batches/`);
       setBatches(res.data);
@@ -129,7 +125,13 @@ function Dashboard() {
       console.error(error);
       fetchAssignments();
     }
-  };
+  }, [fetchAssignments]);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchDepartments();
+    fetchBatches();
+  }, [fetchUsers, fetchDepartments, fetchBatches]);
 
   const handleBatchChange = (batchId) => {
     setSelectedBatchId(batchId);
@@ -142,8 +144,8 @@ function Dashboard() {
 
   const assignReviews = async () => {
     try {
-      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUser}`);
-      showToast("Assignments generated successfully!", "success");
+      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUser}&round_num=${roundNumber}`);
+      showToast("Assignments generated. Review the list before sending emails.", "success");
       // Auto-select the newly created batch
       const newBatchId = res.data.batch_id;
       await fetchBatches();
@@ -154,6 +156,27 @@ function Dashboard() {
     } catch (error) {
       console.error(error);
       showToast("Failed to generate assignments", "error");
+    }
+  };
+
+  const sendBatchEmails = async () => {
+    if (!selectedBatchId) {
+      showToast("Select a batch before sending emails", "error");
+      return;
+    }
+
+    setIsBatchSending(true);
+    try {
+      const res = await axios.post(`${BASE_URL}/assignment-batches/${selectedBatchId}/send-emails`);
+      showToast(
+        `${res.data.emails_sent} emails sent, ${res.data.emails_failed} failed`,
+        res.data.emails_failed ? "info" : "success"
+      );
+    } catch (error) {
+      console.error(error);
+      showToast(error.response?.data?.detail || "Failed to send assignment emails", "error");
+    } finally {
+      setIsBatchSending(false);
     }
   };
 
@@ -615,6 +638,16 @@ function Dashboard() {
                     style={{ width: 40, textAlign: "center", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, outline: "none", padding: "4px 0", fontSize: 12 }}
                   />
                 </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, background: "#f8fafb", border: "1px solid #e8ecf0", padding: "6px 12px", borderRadius: 8 }}>
+                  <label style={{ color: "#718096", fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>Round:</label>
+                  <input 
+                    type="number" min="1" max="20"
+                    value={roundNumber} 
+                    onChange={(e) => setRoundNumber(e.target.value)}
+                    style={{ width: 40, textAlign: "center", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, outline: "none", padding: "4px 0", fontSize: 12 }}
+                  />
+                </div>
                 
                 <button onClick={assignReviews} className="btn-primary" style={{
                   background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff",
@@ -625,6 +658,40 @@ function Dashboard() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
+                </button>
+
+                <button
+                  onClick={sendBatchEmails}
+                  disabled={!selectedBatchId || isBatchSending}
+                  className="btn-primary"
+                  style={{
+                    background: (!selectedBatchId || isBatchSending) ? "#a0aec0" : "linear-gradient(135deg, #10b981, #059669)",
+                    color: "#fff",
+                    padding: "8px 16px",
+                    borderRadius: 8,
+                    border: "none",
+                    cursor: (!selectedBatchId || isBatchSending) ? "not-allowed" : "pointer",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {isBatchSending ? (
+                    <>
+                      <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Emails</span>
+                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -1,6 +1,9 @@
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-import requests
+
 load_dotenv()
 
 # 🔹 Send HTML email with styled user list
@@ -11,13 +14,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     """
     try:
         sender_email = os.getenv("EMAIL_USER")
-        url = "https://api.resend.com/emails"
-
-        headers = {
-            "Authorization": f"Bearer {os.getenv('RESEND_API_KEY')}",
-            "Content-Type": "application/json"
-        }
-
+        sender_password = os.getenv("EMAIL_PASS")
 
         user_rows = ""
         for i, user in enumerate(assigned_users, 1):
@@ -87,19 +84,20 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         </html>
         """
 
-        data = {
-            "from": sender_email,
-            "to": [to_email],
-            "subject": subject,
-            "html": html_body
-        }
+        msg = MIMEMultipart()
+        msg['From'] = f"Admin Team <{sender_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_body, 'html'))
 
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
 
-        print(f"✅ HTML Email sent to {to_email} via Resend")
+        print(f"[SUCCESS] HTML Email sent to {to_email} via SMTP")
         return True
 
     except Exception as e:
-        print(f"❌ HTML Email failed: {e}")
+        print(f"[ERROR] HTML Email failed: {e}")
         return False

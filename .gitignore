@@ -3,12 +3,28 @@ backend/venv/
 __pycache__/
 *.pyc
 .env
-backend/app/main copy 2.py
-backend/app/main copy.py
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+backend/logs/
+*.log
 
 # Node
 frontend/node_modules/
 frontend/build/
+
+# Archives and generated bundles
+backend.zip
+*.zip
+
+# Local scratch/history files
+backend/app/main copy*.py
+backend/app/email_utils copy.py
+backend/app/assign.py
+backend/app/test.py
 
 # OS
 .DS_Store
