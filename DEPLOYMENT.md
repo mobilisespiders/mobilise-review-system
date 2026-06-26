@@ -77,13 +77,13 @@ Backend:
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:PORT/DATABASE
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_gmail_app_password
-ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
+ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app,https://your-vercel-preview-url.vercel.app
 ```
 
 Frontend:
 
 ```env
-REACT_APP_API_URL=https://match-directive-conference-style.trycloudflare.com
+REACT_APP_API_URL=https://venue-signature-specials-initiative.trycloudflare.com
 ```
 
 ## Step 1: Push To GitHub
@@ -195,7 +195,7 @@ build
 8. Add variable:
 
 ```env
-REACT_APP_API_URL=https://match-directive-conference-style.trycloudflare.com
+REACT_APP_API_URL=https://venue-signature-specials-initiative.trycloudflare.com
 ```
 
 9. Deploy.
@@ -216,6 +216,12 @@ ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
 Redeploy or restart the backend after changing this variable.
+
+If you are testing a Vercel preview URL, add that exact preview origin too:
+
+```env
+ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app,https://your-vercel-preview-url.vercel.app
+```
 
 ## Step 6: Smoke Test
 

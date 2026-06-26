@@ -2,6 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import BASE_URL from "../config";
 
+const ADMIN_ACCOUNTS = [
+  { userId: "admin", password: "Mobilise@123456" },
+  { userId: "Chitra", password: "Mobilise@654321" },
+];
+
 // ─── Toast Notification Component ────────────────────────────────────
 function Toast({ message, type, onClose }) {
   useEffect(() => {
@@ -43,11 +48,13 @@ function Dashboard() {
   const [departments, setDepartments] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [newUser, setNewUser] = useState({ name: "", email: "", form_url: "", department_id: "" });
+  const [userFormErrors, setUserFormErrors] = useState({});
 
   // ─── Batch State ────────────────────────────────────────────────────
   const [batches, setBatches] = useState([]);
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [newDept, setNewDept] = useState({ department_name: "" });
+  const [deptFormErrors, setDeptFormErrors] = useState({});
 
   const [filterReviewer, setFilterReviewer] = useState("");
   const [filterReviewee, setFilterReviewee] = useState("");
@@ -57,6 +64,9 @@ function Dashboard() {
 
   const [activeTab, setActiveTab] = useState("Welcome");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => sessionStorage.getItem("mti_admin_auth") === "true");
+  const [adminLogin, setAdminLogin] = useState({ user_id: "", password: "" });
+  const [adminLoginError, setAdminLoginError] = useState("");
 
   // ─── Manual Assign State ───────────────────────────────────────────
   const [manualReviewer, setManualReviewer] = useState([]);
@@ -128,10 +138,11 @@ function Dashboard() {
   }, [fetchAssignments]);
 
   useEffect(() => {
+    if (!isAdminAuthenticated) return;
     fetchUsers();
     fetchDepartments();
     fetchBatches();
-  }, [fetchUsers, fetchDepartments, fetchBatches]);
+  }, [isAdminAuthenticated, fetchUsers, fetchDepartments, fetchBatches]);
 
   const handleBatchChange = (batchId) => {
     setSelectedBatchId(batchId);
@@ -183,17 +194,61 @@ function Dashboard() {
   // ================= CREATE =================
 
   const createUser = async () => {
-    await axios.post(`${BASE_URL}/users/`, null, { params: newUser });
-    fetchUsers();
-    setNewUser({ name: "", email: "", form_url: "", department_id: "" });
-    showToast("User created successfully!", "success");
+    const errors = {};
+    const cleanUser = {
+      name: newUser.name.trim(),
+      email: newUser.email.trim(),
+      form_url: newUser.form_url.trim(),
+      department_id: newUser.department_id,
+    };
+
+    if (!cleanUser.name) errors.name = "Name is required";
+    if (!cleanUser.email) errors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanUser.email)) errors.email = "Enter a valid email";
+    if (!cleanUser.form_url) errors.form_url = "Employee URL is required";
+    else {
+      try {
+        const parsedUrl = new URL(cleanUser.form_url);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) errors.form_url = "Use a valid http or https URL";
+      } catch {
+        errors.form_url = "Use a valid URL";
+      }
+    }
+    if (!cleanUser.department_id) errors.department_id = "Department is required";
+
+    setUserFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      await axios.post(`${BASE_URL}/users/`, null, { params: cleanUser });
+      fetchUsers();
+      setNewUser({ name: "", email: "", form_url: "", department_id: "" });
+      setUserFormErrors({});
+      showToast("User created successfully!", "success");
+    } catch (error) {
+      const detail = error.response?.data?.detail || "Unable to create user";
+      setUserFormErrors({ form: detail });
+    }
   };
 
   const createDepartment = async () => {
-    await axios.post(`${BASE_URL}/departments/`, null, { params: { name: newDept.department_name } });
-    fetchDepartments();
-    setNewDept({ department_name: "" });
-    showToast("Department created successfully!", "success");
+    const cleanName = newDept.department_name.trim();
+    const errors = {};
+    if (!cleanName) errors.department_name = "Department name is required";
+
+    setDeptFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      await axios.post(`${BASE_URL}/departments/`, null, { params: { name: cleanName } });
+      fetchDepartments();
+      setNewDept({ department_name: "" });
+      setDeptFormErrors({});
+      showToast("Department created successfully!", "success");
+    } catch (error) {
+      const detail = error.response?.data?.detail || "Unable to create department";
+      setDeptFormErrors({ form: detail });
+    }
   };
 
   // ================= DELETE =================
@@ -307,6 +362,37 @@ function Dashboard() {
     return match;
   });
 
+  const handleAdminSignIn = (event) => {
+    event.preventDefault();
+    const cleanUserId = adminLogin.user_id.trim();
+    const matchedAccount = ADMIN_ACCOUNTS.find(
+      account => account.userId === cleanUserId && account.password === adminLogin.password
+    );
+
+    if (!matchedAccount) {
+      setAdminLoginError("Invalid user ID or password");
+      return;
+    }
+
+    sessionStorage.setItem("mti_admin_auth", "true");
+    sessionStorage.setItem("mti_admin_user", matchedAccount.userId);
+    setIsAdminAuthenticated(true);
+    setAdminLogin({ user_id: "", password: "" });
+    setAdminLoginError("");
+  };
+
+  const handleAdminSignOut = () => {
+    sessionStorage.removeItem("mti_admin_auth");
+    sessionStorage.removeItem("mti_admin_user");
+    setIsAdminAuthenticated(false);
+    setActiveTab("Welcome");
+    setUsers([]);
+    setDepartments([]);
+    setAssignments([]);
+    setBatches([]);
+    setSelectedBatchId("");
+  };
+
   // ================= UI =================
 
   const sidebarItems = [
@@ -323,6 +409,104 @@ function Dashboard() {
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
     )},
   ];
+
+  if (!isAdminAuthenticated) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f0f4f8 0%, #e6f7fb 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+          input:focus { border-color: #127993 !important; box-shadow: 0 0 0 3px rgba(18,121,147,0.12) !important; }
+        `}</style>
+        <div style={{
+          width: "100%",
+          maxWidth: 420,
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 18px 60px rgba(15, 96, 117, 0.18)",
+          border: "1px solid #d7edf3",
+          overflow: "hidden",
+        }}>
+          <div style={{
+            background: "linear-gradient(135deg, #127993, #0f6075)",
+            padding: "26px 28px",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+          }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18 }}>
+              M
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>MTI Admin</h1>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#cdeff6" }}>Sign in to continue</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleAdminSignIn} style={{ padding: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#4a5568", textTransform: "uppercase", letterSpacing: 0.5 }}>User ID</label>
+              <input
+                value={adminLogin.user_id}
+                onChange={(event) => {
+                  setAdminLogin(prev => ({ ...prev, user_id: event.target.value }));
+                  setAdminLoginError("");
+                }}
+                autoComplete="username"
+                style={{ border: "1px solid #d8e2ea", borderRadius: 10, padding: "12px 14px", fontSize: 14, outline: "none" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#4a5568", textTransform: "uppercase", letterSpacing: 0.5 }}>Password</label>
+              <input
+                type="password"
+                value={adminLogin.password}
+                onChange={(event) => {
+                  setAdminLogin(prev => ({ ...prev, password: event.target.value }));
+                  setAdminLoginError("");
+                }}
+                autoComplete="current-password"
+                style={{ border: "1px solid #d8e2ea", borderRadius: 10, padding: "12px 14px", fontSize: 14, outline: "none" }}
+              />
+            </div>
+
+            {adminLoginError && (
+              <div style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>
+                {adminLoginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              style={{
+                marginTop: 4,
+                background: "linear-gradient(135deg, #127993, #0f6075)",
+                color: "#fff",
+                padding: "12px 18px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: 14,
+                boxShadow: "0 8px 22px rgba(18,121,147,0.24)",
+              }}
+            >
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f0f4f8", fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
@@ -394,12 +578,29 @@ function Dashboard() {
             <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1a202c", margin: 0 }}>Admin Dashboard</h1>
             <p style={{ color: "#718096", fontSize: 13, marginTop: 4 }}>{currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
-          <div style={{
-            background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff",
-            padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
-            boxShadow: "0 4px 16px rgba(18,121,147,0.2)",
-          }}>
-            {currentTime.toLocaleTimeString()}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff",
+              padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              boxShadow: "0 4px 16px rgba(18,121,147,0.2)",
+            }}>
+              {currentTime.toLocaleTimeString()}
+            </div>
+            <button
+              onClick={handleAdminSignOut}
+              style={{
+                background: "#fff",
+                color: "#4a5568",
+                border: "1px solid #d8e2ea",
+                borderRadius: 10,
+                padding: "8px 14px",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Sign Out
+            </button>
           </div>
         </div>
 
@@ -482,15 +683,28 @@ function Dashboard() {
                 <span style={{ background: "linear-gradient(135deg, #e6f7fb, #d0effa)", color: "#127993", fontSize: 12, padding: "6px 14px", borderRadius: 20, fontWeight: 700 }}>{users.length} Users</span>
               </div>
               
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16, background: "#f8fafb", padding: 14, borderRadius: 12, border: "1px solid #e8ecf0" }}>
-                <input placeholder="Name" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} style={{ border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, flex: "1 1 100px", outline: "none", fontSize: 13, transition: "all 0.2s" }} />
-                <input placeholder="Email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} style={{ border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, flex: "1 1 120px", outline: "none", fontSize: 13, transition: "all 0.2s" }} />
-                <input placeholder="Employee URL" type="url" value={newUser.form_url} onChange={(e) => setNewUser({...newUser, form_url: e.target.value})} style={{ border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, flex: "1 1 160px", outline: "none", fontSize: 13, transition: "all 0.2s" }} />
-                <select value={newUser.department_id} onChange={(e) => setNewUser({...newUser, department_id: e.target.value})} style={{ border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, flex: "1 1 120px", outline: "none", fontSize: 13, transition: "all 0.2s", background: "#fff", cursor: "pointer" }}>
-                  <option value="">Select Department</option>
-                  {departments.map(d => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
-                </select>
-                <button onClick={createUser} className="btn-primary" style={{ background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff", padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Add User</button>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr)) auto", gap: 10, marginBottom: 16, background: "#f8fafb", padding: 14, borderRadius: 12, border: "1px solid #e8ecf0", alignItems: "start" }}>
+                <div>
+                  <input required placeholder="Name" value={newUser.name} onChange={(e) => { setNewUser({...newUser, name: e.target.value}); setUserFormErrors(prev => ({ ...prev, name: "", form: "" })); }} style={{ border: userFormErrors.name ? "1px solid #ef4444" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, width: "100%", outline: "none", fontSize: 13, transition: "all 0.2s", boxSizing: "border-box" }} />
+                  {userFormErrors.name && <p style={{ margin: "4px 0 0", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>{userFormErrors.name}</p>}
+                </div>
+                <div>
+                  <input required placeholder="Email" value={newUser.email} onChange={(e) => { setNewUser({...newUser, email: e.target.value}); setUserFormErrors(prev => ({ ...prev, email: "", form: "" })); }} style={{ border: userFormErrors.email ? "1px solid #ef4444" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, width: "100%", outline: "none", fontSize: 13, transition: "all 0.2s", boxSizing: "border-box" }} />
+                  {userFormErrors.email && <p style={{ margin: "4px 0 0", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>{userFormErrors.email}</p>}
+                </div>
+                <div>
+                  <input required placeholder="Employee URL" type="url" value={newUser.form_url} onChange={(e) => { setNewUser({...newUser, form_url: e.target.value}); setUserFormErrors(prev => ({ ...prev, form_url: "", form: "" })); }} style={{ border: userFormErrors.form_url ? "1px solid #ef4444" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, width: "100%", outline: "none", fontSize: 13, transition: "all 0.2s", boxSizing: "border-box" }} />
+                  {userFormErrors.form_url && <p style={{ margin: "4px 0 0", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>{userFormErrors.form_url}</p>}
+                </div>
+                <div>
+                  <select required value={newUser.department_id} onChange={(e) => { setNewUser({...newUser, department_id: e.target.value}); setUserFormErrors(prev => ({ ...prev, department_id: "", form: "" })); }} style={{ border: userFormErrors.department_id ? "1px solid #ef4444" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, width: "100%", outline: "none", fontSize: 13, transition: "all 0.2s", background: "#fff", cursor: "pointer", boxSizing: "border-box" }}>
+                    <option value="">Select Department</option>
+                    {departments.map(d => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
+                  </select>
+                  {userFormErrors.department_id && <p style={{ margin: "4px 0 0", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>{userFormErrors.department_id}</p>}
+                </div>
+                <button onClick={createUser} className="btn-primary" style={{ background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff", padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", minHeight: 36 }}>Add User</button>
+                {userFormErrors.form && <p style={{ gridColumn: "1 / -1", margin: 0, color: "#ef4444", fontSize: 12, fontWeight: 700 }}>{userFormErrors.form}</p>}
               </div>
 
               <div style={{ overflowX: "auto", flex: 1, maxHeight: 500, overflowY: "auto" }}>
@@ -544,9 +758,13 @@ function Dashboard() {
                 <span style={{ background: "linear-gradient(135deg, #e6faf3, #c6f6e0)", color: "#0d8f6e", fontSize: 12, padding: "6px 14px", borderRadius: 20, fontWeight: 700 }}>{departments.length} Depts</span>
               </div>
               
-              <div style={{ display: "flex", gap: 8, marginBottom: 16, background: "#f8fafb", padding: 14, borderRadius: 12, border: "1px solid #e8ecf0" }}>
-                <input placeholder="Department Name" value={newDept.department_name} onChange={(e) => setNewDept({...newDept, department_name: e.target.value})} style={{ border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, flex: 1, outline: "none", fontSize: 13, transition: "all 0.2s" }} />
-                <button onClick={createDepartment} className="btn-primary" style={{ background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff", padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Add Dept</button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 16, background: "#f8fafb", padding: 14, borderRadius: 12, border: "1px solid #e8ecf0", alignItems: "start" }}>
+                <div>
+                  <input required placeholder="Department Name" value={newDept.department_name} onChange={(e) => { setNewDept({...newDept, department_name: e.target.value}); setDeptFormErrors({}); }} style={{ border: deptFormErrors.department_name ? "1px solid #ef4444" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, width: "100%", outline: "none", fontSize: 13, transition: "all 0.2s", boxSizing: "border-box" }} />
+                  {deptFormErrors.department_name && <p style={{ margin: "4px 0 0", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>{deptFormErrors.department_name}</p>}
+                </div>
+                <button onClick={createDepartment} className="btn-primary" style={{ background: "linear-gradient(135deg, #127993, #0f6075)", color: "#fff", padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", minHeight: 36 }}>Add Dept</button>
+                {deptFormErrors.form && <p style={{ gridColumn: "1 / -1", margin: 0, color: "#ef4444", fontSize: 12, fontWeight: 700 }}>{deptFormErrors.form}</p>}
               </div>
 
               <div style={{ overflowX: "auto", flex: 1, maxHeight: 500, overflowY: "auto" }}>

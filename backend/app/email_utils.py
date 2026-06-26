@@ -1,10 +1,14 @@
 import os
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ENV_FILE)
+logger = logging.getLogger("mti")
 
 # 🔹 Send HTML email with styled user list
 def send_html_email(to_email, subject, recipient_name, assigned_users):
@@ -13,8 +17,12 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     assigned_users: list of dicts with 'name', 'email', 'role' keys
     """
     try:
-        sender_email = os.getenv("EMAIL_USER")
-        sender_password = os.getenv("EMAIL_PASS")
+        sender_email = os.getenv("EMAIL_USER", "").strip()
+        sender_password = os.getenv("EMAIL_PASS", "").replace(" ", "").strip()
+
+        if not sender_email or not sender_password:
+            logger.error("Email configuration missing | EMAIL_USER_set=%s EMAIL_PASS_set=%s", bool(sender_email), bool(sender_password))
+            return False
 
         user_rows = ""
         for i, user in enumerate(assigned_users, 1):
@@ -88,16 +96,25 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         msg['From'] = f"Admin Team <{sender_email}>"
         msg['To'] = to_email
         msg['Subject'] = subject
-        msg.attach(MIMEText(html_body, 'html'))
+        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587, timeout=30) as server:
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
 
-        print(f"[SUCCESS] HTML Email sent to {to_email} via SMTP")
+        logger.info("HTML email sent | to_email=%s subject=%s", to_email, subject)
         return True
 
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error("SMTP authentication failed | code=%s response=%s", e.smtp_code, e.smtp_error)
+        return False
+    except smtplib.SMTPRecipientsRefused as e:
+        logger.error("SMTP recipients refused | recipients=%s", list(e.recipients.keys()))
+        return False
+    except smtplib.SMTPException as e:
+        logger.error("SMTP error while sending email | to_email=%s error=%s", to_email, e)
+        return False
     except Exception as e:
-        print(f"[ERROR] HTML Email failed: {e}")
+        logger.exception("HTML email failed | to_email=%s error=%s", to_email, e)
         return False
