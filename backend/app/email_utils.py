@@ -1,6 +1,7 @@
 import os
 import logging
 import smtplib
+from datetime import date, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from pathlib import Path
@@ -10,7 +11,21 @@ ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(ENV_FILE)
 logger = logging.getLogger("mti")
 
-# 🔹 Send HTML email with styled user list
+def _review_period(today=None):
+    today = today or date.today()
+    previous_month = today.replace(day=1) - timedelta(days=1)
+
+    if previous_month.year == today.year:
+        return f"{previous_month.strftime('%b')} and {today.strftime('%B %Y')}"
+
+    return f"{previous_month.strftime('%b %Y')} and {today.strftime('%B %Y')}"
+
+
+def _current_month_due_date(today=None):
+    today = today or date.today()
+    return f"8 {today.strftime('%B %Y')}"
+
+
 def send_html_email(to_email, subject, recipient_name, assigned_users):
     """
     Sends a professionally formatted HTML email with the list of assigned users.
@@ -23,6 +38,9 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         if not sender_email or not sender_password:
             logger.error("Email configuration missing | EMAIL_USER_set=%s EMAIL_PASS_set=%s", bool(sender_email), bool(sender_password))
             return False
+
+        review_period = _review_period()
+        due_date = _current_month_due_date()
 
         user_rows = ""
         for i, user in enumerate(assigned_users, 1):
@@ -50,21 +68,16 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
             <div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #127993 0%, #0f6075 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">Review Assignment</h1>
-                    <p style="color: #b2e0eb; margin: 0; font-size: 14px;">You have been assigned new reviews</p>
+                    <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">Feedback Request</h1>
+                    <p style="color: #b2e0eb; margin: 0; font-size: 14px;">Team member feedback assignment</p>
                 </div>
 
                 <!-- Body -->
                 <div style="background-color: #ffffff; padding: 32px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
                     <p style="color: #2d3748; font-size: 16px; margin: 0 0 8px 0;">Hi <strong>{recipient_name}</strong>,</p>
                     <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
-                        You have been assigned to review the following colleagues. Please complete your reviews at your earliest convenience.
+                        You are requested to provide your feedback for the following team members for <strong>{review_period}</strong> using these links:
                     </p>
-
-                    <!-- Summary Badge -->
-                    <div style="background-color: #e6f7fb; border-left: 4px solid #127993; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
-                        <p style="margin: 0; color: #127993; font-weight: 600; font-size: 14px;">📋 {len(assigned_users)} user(s) assigned to you</p>
-                    </div>
 
                     <!-- Table -->
                     <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; border: 1px solid #e8ecf0;">
@@ -80,6 +93,14 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                             {user_rows}
                         </tbody>
                     </table>
+
+                    <div style="margin-top: 24px; color: #4a5568; font-size: 14px; line-height: 1.6;">
+                        <p style="margin: 0 0 12px 0;"><strong>Note:</strong> Please use this opportunity to add your opinions and thoughts.</p>
+                        <p style="margin: 0 0 12px 0;">Highlights are instances or qualities that go above and beyond the call of duty.</p>
+                        <p style="margin: 0 0 12px 0;">Lowlights are points where there is an opportunity for the person to improve. These don't necessarily mean negatives, rather, they are advice that could help make them better. Please don't leave it without pointers.</p>
+                        <p style="margin: 0 0 12px 0;">Your input is valuable and will remain confidential. Please ensure it is submitted by the end of the day on <strong>{due_date}</strong>.</p>
+                        <p style="margin: 0;">Kindly note that no reminders will be sent, and failure to complete the feedback may impact your evaluation score.</p>
+                    </div>
 
                     <!-- Footer -->
                     <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e8ecf0; text-align: center;">
@@ -118,3 +139,4 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     except Exception as e:
         logger.exception("HTML email failed | to_email=%s error=%s", to_email, e)
         return False
+

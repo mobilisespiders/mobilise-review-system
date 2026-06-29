@@ -20,7 +20,7 @@ function Toast({ message, type, onClose }) {
     info:    { bg: "linear-gradient(135deg, #3b82f6, #2563eb)", icon: "ℹ" },
   };
   const c = colors[type] || colors.info;
-
+     
   return (
     <div style={{
       position: "fixed", top: 24, right: 24, zIndex: 9999,
