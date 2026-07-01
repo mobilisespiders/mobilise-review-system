@@ -126,7 +126,7 @@ copy .env.example .env
 Then edit `frontend/.env` if your backend is not running on:
 
 ```env
-REACT_APP_API_URL=https://amendment-squad-strikes-patients.trycloudflare.com
+REACT_APP_API_URL=https://lifestyle-due-barrier-wal.trycloudflare.com/
 ```
 
 Frontend URL:
@@ -135,7 +135,7 @@ Frontend URL:
 http://localhost:3000
 ```
 
-For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL. For the current Cloudflare Tunnel backend, use `https://amendment-squad-strikes-patients.trycloudflare.com`.
+For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL. For the current Cloudflare Tunnel backend, use `https://lifestyle-due-barrier-wal.trycloudflare.com/`.
 
 ## Main Workflows
 

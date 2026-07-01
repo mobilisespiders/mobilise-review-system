@@ -19,11 +19,6 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
-# product_id,product_name,category,price,stock
-# 1,Product_1,Books,379.52,221
-
-# order_id,customer_id,order_date,product_category,order_value,payment_method,delivered
-# 1,76,2023-01-01 00:00:00,Home,103.87,Wallet,1
 
 # Import DB session
 from app.database import get_db, Base, engine
