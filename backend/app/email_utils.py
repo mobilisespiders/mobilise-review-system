@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+LOGO_URL = "https://imgh.in/host/sojylu"
 load_dotenv(ENV_FILE)
 logger = logging.getLogger("mti")
 
@@ -21,7 +22,7 @@ def _review_period(today=None):
     return f"{previous_month.strftime('%b %Y')} and {today.strftime('%B %Y')}"
 
 
-def _current_month_due_date(today=None):
+def _current_month_due_date(today=None):    
     today = today or date.today()
     return f"8 {today.strftime('%B %Y')}"
 
@@ -68,6 +69,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
             <div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #12484c 0%, #08747C 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
+                    <img src="{LOGO_URL}" alt="Mobilise" width="96" style="display: block; width: 96px; max-width: 96px; height: auto; margin: 0 auto 18px auto; border: 0;">
                     <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">Feedback Request</h1>
                     <p style="color: #A8DDE1; margin: 0; font-size: 14px;">Team member feedback assignment</p>
                 </div>
@@ -139,4 +141,3 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     except Exception as e:
         logger.exception("HTML email failed | to_email=%s error=%s", to_email, e)
         return False
-
