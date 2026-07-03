@@ -11,3 +11,7 @@ class ReviewCreate(BaseModel):
 class ManualAssignRequest(BaseModel):
     reviewer_ids: List[int]
     reviewee_ids: List[int]
+
+
+class AssignmentUpdateRequest(BaseModel):
+    reviewee_ids: List[int]

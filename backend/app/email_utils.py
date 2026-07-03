@@ -52,7 +52,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e8ecf0; color: #1a202c; font-weight: 600; font-size: 14px;">{user['name']}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e8ecf0; color: #4a5568; font-size: 14px;">{user.get('email', '')}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e8ecf0; text-align: center;">
-                    <a href="{form_link}" style="display: inline-block; background-color: #e6f7fb; color: #127993; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none; border: 1px solid #b2e0eb;">Start Review &rarr;</a>
+                    <a href="{form_link}" style="display: inline-block; background-color: #E6F7F8; color: #12484c; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none; border: 1px solid #A8DDE1;">Start Review &rarr;</a>
                 </td>
             </tr>
             """
@@ -67,9 +67,9 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         <body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
             <div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
                 <!-- Header -->
-                <div style="background: linear-gradient(135deg, #127993 0%, #0f6075 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
+                <div style="background: linear-gradient(135deg, #12484c 0%, #08747C 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
                     <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">Feedback Request</h1>
-                    <p style="color: #b2e0eb; margin: 0; font-size: 14px;">Team member feedback assignment</p>
+                    <p style="color: #A8DDE1; margin: 0; font-size: 14px;">Team member feedback assignment</p>
                 </div>
 
                 <!-- Body -->
@@ -82,7 +82,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                     <!-- Table -->
                     <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; border: 1px solid #e8ecf0;">
                         <thead>
-                            <tr style="background-color: #127993;">
+                            <tr style="background-color: #12484c;">
                                 <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">#</th>
                                 <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Name</th>
                                 <th style="padding: 12px 16px; text-align: left; color: #ffffff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Email</th>

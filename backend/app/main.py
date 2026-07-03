@@ -234,15 +234,6 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
     month_year_str = now.strftime("%Y-%m")
     month_label = now.strftime("%B %Y")
 
-    # Create new assignment batch
-    batch = models.AssignmentBatch(
-        month_year=month_year_str,
-        label=month_label
-    )
-    db.add(batch)
-    db.commit()
-    db.refresh(batch)
-
     dept_users_map = defaultdict(list)
     empty_list = []
     
@@ -274,6 +265,30 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
         start_index = element_index + round_num
         last_index = start_index + num
         user_assign_dict[each_user_id] = all_users_rotation_list[start_index:last_index]
+
+    self_assignments = [
+        reviewer_id
+        for reviewer_id, assigned_user_ids in user_assign_dict.items()
+        if reviewer_id in assigned_user_ids
+    ]
+    if self_assignments:
+        logger.error(
+            "Automatic assignment generated self-review pairs | reviewer_ids=%s",
+            self_assignments,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Generated assignment contains self-review. Please change round number or assignment count.",
+        )
+
+    # Create new assignment batch only after generated assignments pass validation.
+    batch = models.AssignmentBatch(
+        month_year=month_year_str,
+        label=month_label
+    )
+    db.add(batch)
+    db.commit()
+    db.refresh(batch)
 
     
     # return(users, dept_users_map, empty_list,all_users_list, user_assign_dict)
@@ -473,7 +488,7 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
 # @app.post("/submit-review/")
 # def submit_review(review: schemas.ReviewCreate, db: Session = Depends(get_db)):
     
-#     # 1️⃣ Check if reviewer already gave 4 reviews
+#     # 1 Check if reviewer already gave 4 reviews
 #     review_count = db.query(models.Review).filter(
 #         models.Review.reviewer_id == review.reviewer_id
 #     ).count()
@@ -481,11 +496,11 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
 #     if review_count >= 4:
 #         raise HTTPException(status_code=400, detail="Review limit reached (4 only)")
 
-#     # 2️⃣ Prevent self-review
+#     # 2 Prevent self-review
 #     if review.reviewer_id == review.reviewee_id:
 #         raise HTTPException(status_code=400, detail="You cannot review yourself")
 
-#     # 3️⃣ Save review
+#     # 3 Save review
 #     new_review = models.Review(
 #         reviewer_id=review.reviewer_id,
 #         reviewee_id=review.reviewee_id,
@@ -502,7 +517,7 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
 @app.post("/submit-review/")
 def submit_review(review: schemas.ReviewCreate, db: Session = Depends(get_db)):
 
-    # 1️⃣ Check assignment exists
+    # 1 Check assignment exists
     assignment = db.query(models.ReviewAssignment).filter(
         models.ReviewAssignment.reviewer_id == review.reviewer_id,
         models.ReviewAssignment.reviewee_id == review.reviewee_id
@@ -514,7 +529,7 @@ def submit_review(review: schemas.ReviewCreate, db: Session = Depends(get_db)):
             detail="You are not allowed to review this user"
         )
 
-    # 3️⃣ Prevent duplicate review
+    # 3 Prevent duplicate review
     existing_review = db.query(models.Review).filter(
         models.Review.reviewer_id == review.reviewer_id,
         models.Review.reviewee_id == review.reviewee_id
@@ -526,7 +541,7 @@ def submit_review(review: schemas.ReviewCreate, db: Session = Depends(get_db)):
             detail="You already reviewed this user"
         )
 
-    # 4️⃣ Save review
+    # 4 Save review
     new_review = models.Review(
         reviewer_id=review.reviewer_id,
         reviewee_id=review.reviewee_id,
@@ -709,6 +724,66 @@ def send_assignment_batch_emails(batch_id: int, db: Session = Depends(get_db)):
     }
 
 
+@app.put("/assignment-batches/{batch_id}/reviewers/{reviewer_id}/assignments")
+def update_reviewer_batch_assignments(
+    batch_id: int,
+    reviewer_id: int,
+    request: schemas.AssignmentUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    batch = db.query(models.AssignmentBatch).filter(
+        models.AssignmentBatch.id == batch_id
+    ).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Assignment batch not found")
+
+    reviewer = db.query(models.User).filter(
+        models.User.user_id == reviewer_id
+    ).first()
+    if not reviewer:
+        raise HTTPException(status_code=404, detail="Reviewer not found")
+
+    reviewee_ids = list(dict.fromkeys(request.reviewee_ids))
+    if not reviewee_ids:
+        raise HTTPException(status_code=400, detail="At least one reviewee is required")
+
+    if reviewer_id in reviewee_ids:
+        raise HTTPException(status_code=400, detail="Reviewer cannot review themselves")
+
+    reviewees = db.query(models.User).filter(
+        models.User.user_id.in_(reviewee_ids)
+    ).all()
+    if len(reviewees) != len(reviewee_ids):
+        raise HTTPException(status_code=404, detail="One or more reviewees were not found")
+
+    db.query(models.ReviewAssignment).filter(
+        models.ReviewAssignment.batch_id == batch_id,
+        models.ReviewAssignment.reviewer_id == reviewer_id,
+    ).delete(synchronize_session=False)
+
+    for reviewee_id in reviewee_ids:
+        db.add(models.ReviewAssignment(
+            batch_id=batch_id,
+            reviewer_id=reviewer_id,
+            reviewee_id=reviewee_id,
+        ))
+
+    db.commit()
+
+    logger.info(
+        "Reviewer assignments updated | batch_id=%s reviewer_id=%s reviewees=%s",
+        batch_id,
+        reviewer_id,
+        len(reviewee_ids),
+    )
+    return {
+        "message": "Reviewer assignments updated",
+        "batch_id": batch_id,
+        "reviewer_id": reviewer_id,
+        "assignments_updated": len(reviewee_ids),
+    }
+
+
 
 # @app.delete("/users/{user_id}")
 # def delete_assignment(user_id: int, db: Session = Depends(get_db)):
@@ -724,19 +799,19 @@ def send_assignment_batch_emails(batch_id: int, db: Session = Depends(get_db)):
 @app.delete("/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
 
-    # 🔹 Delete related reviews
+    #  Delete related reviews
     db.query(models.Review).filter(
         (models.Review.reviewer_id == user_id) |
         (models.Review.reviewee_id == user_id)
     ).delete(synchronize_session=False)
 
-    # 🔹 Delete assignments
+    #  Delete assignments
     db.query(models.ReviewAssignment).filter(
         (models.ReviewAssignment.reviewer_id == user_id) |
         (models.ReviewAssignment.reviewee_id == user_id)
     ).delete(synchronize_session=False)
 
-    # 🔹 Delete user
+    #  Delete user
     db.query(models.User).filter(models.User.user_id == user_id).delete()
 
     db.commit()
@@ -748,13 +823,13 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 @app.delete("/users/")
 def delete_all_users(db: Session = Depends(get_db)):
 
-    # 🔹 Delete all reviews
+    #  Delete all reviews
     db.query(models.Review).delete()
 
-    # 🔹 Delete all assignments
+    #  Delete all assignments
     db.query(models.ReviewAssignment).delete()
 
-    # 🔹 Delete all users
+    #  Delete all users
     db.query(models.User).delete()
 
     db.commit()
@@ -823,6 +898,17 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
         len(request.reviewee_ids),
     )
 
+    overlapping_user_ids = set(request.reviewer_ids).intersection(request.reviewee_ids)
+    if overlapping_user_ids:
+        logger.warning(
+            "Manual assignment rejected because users were selected as both reviewer and reviewee | user_ids=%s",
+            sorted(overlapping_user_ids),
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="A user cannot be both reviewer and reviewee in the same manual assignment",
+        )
+
     if not m_reviewers:
         raise HTTPException(status_code=404, detail="No valid recipients found")
 
@@ -838,6 +924,13 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
     skipped_count = 0
     email_success = 0
     email_failed = 0
+    manual_batch = models.AssignmentBatch(
+        month_year=time.strftime("%Y-%m"),
+        label=f"Manual Assignment - {time.strftime('%d %B %Y %I:%M %p')}"
+    )
+    db.add(manual_batch)
+    db.commit()
+    db.refresh(manual_batch)
 
     for recipient in m_reviewers:
         assigned_user_details = []
@@ -848,10 +941,11 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
                 skipped_count += 1
                 continue
 
-            # Check if assignment already exists
+            # Check if assignment already exists inside this manual batch.
             existing = db.query(models.ReviewAssignment).filter(
                 models.ReviewAssignment.reviewer_id == recipient.user_id,
-                models.ReviewAssignment.reviewee_id == assignee.user_id
+                models.ReviewAssignment.reviewee_id == assignee.user_id,
+                models.ReviewAssignment.batch_id == manual_batch.id,
             ).first()
 
             if existing:
@@ -868,7 +962,8 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
             # Create new assignment
             assignment = models.ReviewAssignment(
                 reviewer_id=recipient.user_id,
-                reviewee_id=assignee.user_id
+                reviewee_id=assignee.user_id,
+                batch_id=manual_batch.id,
             )
             db.add(assignment)
             created_count += 1
@@ -880,24 +975,28 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
                 "form_url": assignee.form_url
             })
 
-        # Send HTML email to this recipient
-        # if assigned_user_details:
-        #     success = send_html_email(
-        #         to_email=recipient.email,
-        #         subject="Manual Review Assignment",
-        #         recipient_name=recipient.name,
-        #         assigned_users=assigned_user_details
-        #     )
-        #     if success:
-        #         email_success += 1
-        #     else:
-        #         email_failed += 1
-        #         logger.error("Manual assignment email failed | user_id=%s email=%s", recipient.user_id, recipient.email)
+        if assigned_user_details:
+            success = send_html_email(
+                to_email=recipient.email,
+                subject="Manual Review Assignment",
+                recipient_name=recipient.name,
+                assigned_users=assigned_user_details
+            )
+            if success:
+                email_success += 1
+            else:
+                email_failed += 1
+                logger.error(
+                    "Manual assignment email failed | user_id=%s email=%s",
+                    recipient.user_id,
+                    recipient.email,
+                )
 
     db.commit()
 
     logger.info(
-        "Manual assignment completed | created=%s skipped=%s emails_sent=%s emails_failed=%s",
+        "Manual assignment completed | batch_id=%s created=%s skipped=%s emails_sent=%s emails_failed=%s",
+        manual_batch.id,
         created_count,
         skipped_count,
         email_success,
@@ -905,8 +1004,11 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
     )
     return {
         "message": "Manual assignments processed!",
+        "batch_id": manual_batch.id,
+        "batch_label": manual_batch.label,
         "assignments_created": created_count,
         "assignments_skipped": skipped_count,
         "emails_sent": email_success,
         "emails_failed": email_failed
     }
+

@@ -19,7 +19,7 @@ function ReviewForm() {
 
     try {
       await axios.post(`${BASE_URL}/submit-review/`, form);
-      alert("Review submitted ✅");
+      alert("Review submitted successfully");
     } catch (error) {
       alert(error.response?.data?.detail || "Error");
     }

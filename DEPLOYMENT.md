@@ -83,7 +83,7 @@ ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app,https://your
 Frontend:
 
 ```env
-REACT_APP_API_URL=https://lifestyle-due-barrier-wal.trycloudflare.com
+REACT_APP_API_URL=https://refresh-tags-reviews-action.trycloudflare.com
 ```
 
 ## Step 1: Push To GitHub
@@ -195,7 +195,7 @@ build
 8. Add variable:
 
 ```env
-REACT_APP_API_URL=https://lifestyle-due-barrier-wal.trycloudflare.com
+REACT_APP_API_URL=https://refresh-tags-reviews-action.trycloudflare.com
 ```
 
 9. Deploy.

@@ -4,9 +4,9 @@ A set of three new features to be added to the MTI Review System.
 
 ---
 
-## Feature 1 — User "Employee URL" Field (Role → Form URL)
+## Feature 1  User "Employee URL" Field (Role  Form URL)
 
-Replace the plain `role` text input when creating a user with a field called **Employee URL** — a URL field where the admin enters each user's **individual review form URL** (e.g. `https://mti.app/review/john-doe`). This URL will be stored in the existing `role` column (or a new dedicated column — see Open Questions), and will be included in assignment emails.
+Replace the plain `role` text input when creating a user with a field called **Employee URL**  a URL field where the admin enters each user's **individual review form URL** (e.g. `https://mti.app/review/john-doe`). This URL will be stored in the existing `role` column (or a new dedicated column  see Open Questions), and will be included in assignment emails.
 
 ### Proposed Changes
 
@@ -27,9 +27,9 @@ Replace the plain `role` text input when creating a user with a field called **E
 
 ---
 
-## Feature 2 — Individual Reviewee Links in Emails
+## Feature 2  Individual Reviewee Links in Emails
 
-When assignment emails are sent, each **row in the email table for a reviewee** will include their personal `form_url` as a clickable **"Start Review →"** button instead of a generic link.
+When assignment emails are sent, each **row in the email table for a reviewee** will include their personal `form_url` as a clickable **"Start Review "** button instead of a generic link.
 
 ### Proposed Changes
 
@@ -42,12 +42,12 @@ When assignment emails are sent, each **row in the email table for a reviewee** 
 
 ---
 
-## Feature 3 — Smart Monthly List Generation with History
+## Feature 3  Smart Monthly List Generation with History
 
 This is the most significant change. The current `assign-reviews` endpoint deletes all old assignments and randomly re-assigns. The new logic must:
 
 1. **Store each generation as a named "batch"** (tied to the current month).
-2. **On "Generate New"** — run smart assignment that **avoids repeat pairings** from all previous batches.
+2. **On "Generate New"**  run smart assignment that **avoids repeat pairings** from all previous batches.
 3. **Dashboard shows the LATEST batch** by default, with a **month filter** to view older batches.
 
 ### Algorithm
@@ -78,15 +78,15 @@ For each user A:
 - Add `batch_id` FK column to `ReviewAssignment`.
 
 #### [MODIFY] [main.py](file:///d:/Saran/Mobilise%20Internal%20Projects/MTI/backend/app/main.py)
-- `POST /assign-reviews/` → full rewrite:
+- `POST /assign-reviews/`  full rewrite:
   - Create a new `AssignmentBatch` record for this month.
   - Do NOT delete old assignments.
-  - Query all **past** reviewer→reviewee pairs for each user.
+  - Query all **past** reviewerreviewee pairs for each user.
   - Run smart assignment algorithm (dept-balanced, no repeats).
   - Save new assignments under new `batch_id`.
   - Send emails with individual reviewee links.
-- Add `GET /assignment-batches/` → list all batches (id, label, month_year, count).
-- Add `GET /assignments/?batch_id=X` → filter assignments by batch.
+- Add `GET /assignment-batches/`  list all batches (id, label, month_year, count).
+- Add `GET /assignments/?batch_id=X`  filter assignments by batch.
 
 #### [MODIFY] [Dashboard.js](file:///d:/Saran/Mobilise%20Internal%20Projects/MTI/frontend/src/components/Dashboard.js)
 - On "Assign Reviews" tab:
@@ -104,7 +104,7 @@ For each user A:
 > - **Option A**: Rename the column from `role` to `form_url` (breaking change, needs DB migration)
 > - **Option B**: Keep `role` but add a new `form_url` column (safe, backward compatible)
 >
-> **I recommend Option B** — add a new `form_url` column alongside `role`. This avoids breaking the existing `/submit-review/` validation logic. Please confirm.
+> **I recommend Option B**  add a new `form_url` column alongside `role`. This avoids breaking the existing `/submit-review/` validation logic. Please confirm.
 
 > [!IMPORTANT]
 > **DB Migration**: We're using Neon (PostgreSQL). `Base.metadata.create_all()` will NOT auto-add columns to existing tables. A manual `ALTER TABLE` SQL is needed. I'll provide the exact SQL to run in Neon console.
@@ -114,12 +114,13 @@ For each user A:
 ## Verification Plan
 
 ### Automated
-- Restart the backend and call `GET /users/` → verify `form_url` field appears.
-- Call `POST /assign-reviews/` twice → verify no duplicate pairings in second batch.
-- Call `GET /assignment-batches/` → verify two batch records exist.
+- Restart the backend and call `GET /users/`  verify `form_url` field appears.
+- Call `POST /assign-reviews/` twice  verify no duplicate pairings in second batch.
+- Call `GET /assignment-batches/`  verify two batch records exist.
 
 ### Manual
 - Check the "Assign Reviews" tab: the latest batch should auto-load.
-- Select a previous month in the filter → assignments for that batch shown.
+- Select a previous month in the filter  assignments for that batch shown.
 - Check email received: each reviewee row should have a "Start Review" link with their personal URL.
-- Add user with Employee URL → verify it shows as a clickable link in the users table.
+- Add user with Employee URL  verify it shows as a clickable link in the users table.
+
