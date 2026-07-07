@@ -80,7 +80,7 @@ The app was tested in the browser:
 Run this command from the project root to send one test email using the current backend email template and the credentials in `backend/.env`.
 
 ```powershell
-python -c "import os, sys; sys.path.insert(0, 'backend'); from app.email_utils import send_html_email; to_email = os.getenv('EMAIL_USER', '').strip(); ok = send_html_email(to_email, 'MTI Review - Test Email', 'Admin', [{'name': 'Test User', 'email': to_email, 'role': 'Tester', 'form_url': 'https://mti-review.vercel.app/'}]); print('sent' if ok else 'failed')"
+python -c "import os, sys; sys.path.insert(0, 'backend'); from app.email_utils import send_html_email; to_email = os.getenv('EMAIL_USER', '').strip(); ok = send_html_email(to_email, 'MTI feedback', 'Admin', [{'name': 'Test User', 'email': to_email, 'role': 'Tester', 'form_url': 'https://mti-review.vercel.app/'}]); print('sent' if ok else 'failed')"
 ```
 
 Expected output:
@@ -90,4 +90,5 @@ sent
 ```
 
 This sends the test email to the configured `EMAIL_USER` address, currently `mobilisespiders@gmail.com`.
+
 

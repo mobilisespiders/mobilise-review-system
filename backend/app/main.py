@@ -694,7 +694,7 @@ def send_assignment_batch_emails(batch_id: int, db: Session = Depends(get_db)):
 
         success = send_html_email(
             to_email=reviewer.email,
-            subject=f"Review Assignment - {batch.label or batch.month_year or batch.id}",
+            subject="MTI feedback",
             recipient_name=reviewer.name,
             assigned_users=assigned_users_data,
         )
@@ -978,7 +978,7 @@ def manual_assign(request: schemas.ManualAssignRequest, db: Session = Depends(ge
         if assigned_user_details:
             success = send_html_email(
                 to_email=recipient.email,
-                subject="Manual Review Assignment",
+                subject="MTI feedback",
                 recipient_name=recipient.name,
                 assigned_users=assigned_user_details
             )

@@ -1,5 +1,5 @@
 const LOCAL_API_URL = "http://localhost:8000";
-const PRODUCTION_API_URL = "https://accomplished-suddenly-computer-trails.trycloudflare.com";
+const PRODUCTION_API_URL = "https://wind-racing-catherine-opponent.trycloudflare.com";
 
 const BASE_URL =
   process.env.REACT_APP_API_URL ||
