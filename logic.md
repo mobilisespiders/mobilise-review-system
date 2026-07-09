@@ -134,3 +134,27 @@ set(reviewer_ids) intersects set(reviewee_ids)
 ```
 
 If any user appears in both lists, the API returns `400` and does not create the batch.
+
+## Send Test Email
+
+Use these commands from the project root. They use the current email template in `backend/app/email_utils.py` and SMTP credentials from `backend/.env`.
+
+### Send To The Configured Sender Email
+
+```powershell
+python -c "import os, sys; sys.path.insert(0, 'backend'); from app.email_utils import send_html_email; to_email = os.getenv('EMAIL_USER', '').strip(); ok = send_html_email(to_email, 'MTI feedback', 'Admin', [{'name': 'Test User', 'email': to_email, 'role': 'Tester', 'form_url': 'https://mti-review.vercel.app/'}]); print('sent' if ok else 'failed')"
+```
+
+### Send To A Specific Email
+
+Replace `saran@mobilise.agency` and `Saran` as needed.
+
+```powershell
+python -c "import sys; sys.path.insert(0, 'backend'); from app.email_utils import send_html_email; ok = send_html_email('saran@mobilise.agency', 'MTI feedback', 'Saran', [{'name': 'Test User', 'email': 'test@example.com', 'role': 'Tester', 'form_url': 'https://mti-review.vercel.app/'}]); print('sent' if ok else 'failed')"
+```
+
+Expected output:
+
+```text
+sent
+```
