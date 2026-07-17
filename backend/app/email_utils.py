@@ -36,6 +36,8 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     try:
         sender_email = os.getenv("EMAIL_USER", "").strip()
         sender_password = os.getenv("EMAIL_PASS", "").replace(" ", "").strip()
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
+        smtp_port = int(os.getenv("SMTP_PORT", "587").strip())
 
         if not sender_email or not sender_password:
             logger.error("Email configuration missing | EMAIL_USER_set=%s EMAIL_PASS_set=%s", bool(sender_email), bool(sender_password))
@@ -141,7 +143,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                                                         <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Lowlights are points where there is an opportunity for the person to improve. These don't necessarily mean negatives, rather, they are advice that could help make them better. Please don't leave it without pointers.</td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Your input is valuable and will remain confidential. Please ensure it is submitted by the end of the day on <strong>10 July 2026</strong>.</td>
+                                                        <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Your input is valuable and will remain confidential. Please ensure it is submitted by the end of the day on <strong>14 July 2026</strong>.</td>
                                                     </tr>
                                                     <tr>
                                                         <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Kindly note that no reminders will be sent, and failure to complete the feedback may impact your evaluation score.</td>
@@ -180,7 +182,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         msg['Subject'] = subject
         msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=30) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)

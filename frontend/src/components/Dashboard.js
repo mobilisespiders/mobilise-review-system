@@ -74,7 +74,7 @@ function Dashboard() {
   const [editRevieweeIds, setEditRevieweeIds] = useState([]);
   const [isSavingAssignments, setIsSavingAssignments] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("Welcome");
+  const [activeTab, setActiveTab] = useState("Dashboard");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => sessionStorage.getItem("mti_admin_auth") === "true");
   const [adminLogin, setAdminLogin] = useState({ user_id: "", password: "" });
@@ -507,21 +507,6 @@ function Dashboard() {
     return groups;
   }, {})).sort((a, b) => getUserName(a.reviewer_id).localeCompare(getUserName(b.reviewer_id)));
 
-  const reviewerCount = new Set(assignments.map(a => a.reviewer_id)).size;
-  const revieweeCount = new Set(assignments.map(a => a.reviewee_id)).size;
-  const latestBatch = batches[0];
-  const latestBatchAssignments = latestBatch
-    ? assignments.filter(a => String(a.batch_id) === String(latestBatch.id)).length
-    : assignments.length;
-  const averageAssignments = reviewerCount ? (assignments.length / reviewerCount).toFixed(1) : "0.0";
-  const departmentSummary = departments
-    .map(dept => ({
-      ...dept,
-      userCount: users.filter(user => String(user.department_id) === String(dept.department_id)).length,
-    }))
-    .sort((a, b) => b.userCount - a.userCount);
-  const topDepartments = departmentSummary.slice(0, 4);
-
   const handleAdminSignIn = (event) => {
     event.preventDefault();
     const cleanUserId = adminLogin.user_id.trim();
@@ -545,7 +530,7 @@ function Dashboard() {
     sessionStorage.removeItem("mti_admin_auth");
     sessionStorage.removeItem("mti_admin_user");
     setIsAdminAuthenticated(false);
-    setActiveTab("Welcome");
+    setActiveTab("Dashboard");
     setUsers([]);
     setDepartments([]);
     setAssignments([]);
@@ -767,8 +752,8 @@ function Dashboard() {
         {/* Toast */}
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-        {/* Welcome */}
-        {activeTab === 'Welcome' && (
+        {/* DASHBOARD */}
+        {activeTab === 'Dashboard' && (
           <div style={{ animation: "fadeUp 0.5s ease" }}>
             <div className="card-hover" style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -794,81 +779,6 @@ function Dashboard() {
                     <p style={{ fontSize: 12, fontWeight: 500, color: "rgba(0,0,0,0.42)", margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</p>
                   </div>
                 ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* DASHBOARD */}
-        {activeTab === 'Dashboard' && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, animation: "fadeUp 0.4s ease" }}>
-            <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)", padding: 24 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1.4fr) minmax(220px, 0.6fr)", gap: 24, alignItems: "center" }}>
-                <div>
-                  <p style={{ margin: 0, color: "#0A919B", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6 }}>Current Review Cycle</p>
-                  <h2 style={{ margin: "8px 0 8px", color: "#000000", fontSize: 30, fontWeight: 500 }}>{latestBatch?.label || "No batch generated"}</h2>
-                  <p style={{ margin: 0, color: "rgba(0,0,0,0.58)", fontSize: 14, maxWidth: 560 }}>Review the latest assignment batch, check coverage, and send feedback emails from the assignment hub.</p>
-                </div>
-
-                <div style={{ justifySelf: "end", width: "100%", maxWidth: 260, background: "linear-gradient(135deg, rgba(10,145,155,0.12), #ffffff)", border: "1px solid rgba(10,145,155,0.20)", borderRadius: 14, padding: 16 }}>
-                  <p style={{ margin: 0, color: "rgba(0,0,0,0.58)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Latest Assignments</p>
-                  <p style={{ margin: "6px 0 0", color: "#0A919B", fontSize: 38, lineHeight: 1, fontWeight: 600 }}>{latestBatchAssignments}</p>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 24 }}>
-                {[
-                  { label: "Users", value: users.length },
-                  { label: "Reviewers", value: reviewerCount },
-                  { label: "Reviewees", value: revieweeCount },
-                  { label: "Avg/User", value: averageAssignments },
-                ].map(item => (
-                  <div key={item.label} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14 }}>
-                    <p style={{ margin: 0, color: "#000000", fontSize: 24, fontWeight: 500 }}>{item.value}</p>
-                    <p style={{ margin: "4px 0 0", color: "rgba(0,0,0,0.52)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{item.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1.35fr) minmax(280px, 0.65fr)", gap: 18 }}>
-              <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, color: "#000000", fontSize: 16, fontWeight: 500 }}>Department Spread</h3>
-                  <span style={{ color: "rgba(0,0,0,0.52)", fontSize: 12, fontWeight: 500 }}>{users.length} users</span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {topDepartments.length > 0 ? topDepartments.map(dept => {
-                    const percent = users.length ? Math.round((dept.userCount / users.length) * 100) : 0;
-                    return (
-                      <div key={dept.department_id}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                          <span style={{ color: "#000000", fontSize: 13, fontWeight: 500 }}>{dept.department_name}</span>
-                          <span style={{ color: "rgba(0,0,0,0.58)", fontSize: 12, fontWeight: 500 }}>{dept.userCount}</span>
-                        </div>
-                        <div style={{ height: 8, background: "#edf2f7", borderRadius: 999, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${percent}%`, background: "#0A919B", borderRadius: 999 }} />
-                        </div>
-                      </div>
-                    );
-                  }) : (
-                    <p style={{ color: "rgba(0,0,0,0.45)", fontSize: 13, margin: 0 }}>No departments added yet.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: 20 }}>
-                <h3 style={{ margin: "0 0 14px", color: "#000000", fontSize: 16, fontWeight: 500 }}>Recent Batches</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {batches.slice(0, 4).map(batch => (
-                    <button key={batch.id} onClick={() => { setActiveTab("Assign Reviews"); handleBatchChange(batch.id); }} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "11px 12px", cursor: "pointer", textAlign: "left" }}>
-                      <span style={{ color: "#000000", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{batch.label || batch.month_year}</span>
-                      <span style={{ color: "#0A919B", fontSize: 11, fontWeight: 600 }}>Open</span>
-                    </button>
-                  ))}
-                  {batches.length === 0 && <p style={{ color: "rgba(0,0,0,0.45)", fontSize: 13, margin: 0 }}>No batches generated yet.</p>}
-                </div>
               </div>
             </div>
           </div>
@@ -1011,7 +921,6 @@ function Dashboard() {
 
           </div>
         )}
-
         {/* Assign Reviews */}
         {activeTab === 'Assign Reviews' && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20, animation: "fadeUp 0.4s ease" }}>
@@ -1191,45 +1100,45 @@ function Dashboard() {
               </div>
             )}
 
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 8px 2px 0", maxHeight: 620, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 8px 2px 0", maxHeight: 620, display: "flex", flexDirection: "column", gap: 10 }}>
               {assignmentGroups.length > 0 ? (
                 assignmentGroups.map(group => (
                   <div key={group.reviewer_id} style={{ border: "1px solid #dfe8ef", borderRadius: 12, background: "#fff", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.04)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "14px 16px", background: "rgba(255,255,255,0.58)", borderBottom: "1px solid rgba(0,0,0,0.10)", borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 220, flex: "1 1 280px" }}>
-                        <div style={{ height: 38, width: 38, borderRadius: 10, background: "linear-gradient(135deg, #dbeafe, #bfdbfe)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontWeight: 500, fontSize: 13, flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "rgba(255,255,255,0.58)", borderBottom: "1px solid rgba(0,0,0,0.10)", borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220, flex: "1 1 280px" }}>
+                        <div style={{ height: 34, width: 34, borderRadius: 9, background: "linear-gradient(135deg, #dbeafe, #bfdbfe)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontWeight: 500, fontSize: 12, flexShrink: 0 }}>
                           {getUserName(group.reviewer_id).charAt(0)}
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ fontWeight: 500, color: "#000000", margin: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(group.reviewer_id)}</p>
                           <p style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserEmail(group.reviewer_id)}</p>
-                          <span style={{ display: "inline-block", marginTop: 6, background: "rgba(0,0,0,0.06)", color: "#000000", padding: "3px 8px", borderRadius: 6, fontWeight: 500, fontSize: 10 }}>{getUserDepartmentName(group.reviewer_id)}</span>
+                          <span style={{ display: "inline-block", marginTop: 4, background: "rgba(0,0,0,0.06)", color: "#000000", padding: "2px 7px", borderRadius: 6, fontWeight: 500, fontSize: 10 }}>{getUserDepartmentName(group.reviewer_id)}</span>
                         </div>
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end", flex: "0 0 auto" }}>
-                        <span style={{ background: "#e2e2e0", color: "#0A919B", padding: "5px 10px", borderRadius: 999, fontWeight: 500, fontSize: 11, whiteSpace: "nowrap" }}>{group.reviewees.length} assigned</span>
+                        <span style={{ background: "#e2e2e0", color: "#0A919B", padding: "4px 9px", borderRadius: 999, fontWeight: 500, fontSize: 11, whiteSpace: "nowrap" }}>{group.reviewees.length} assigned</span>
                         <button
                           onClick={() => startEditAssignments(group.reviewer_id)}
                           disabled={!selectedBatchId}
                           title={selectedBatchId ? "Edit this reviewer list" : "Select a batch to edit"}
-                          style={{ background: selectedBatchId ? "#fff" : "#f1f5f9", border: "1px solid #d8e2ea", color: selectedBatchId ? "#0A919B" : "rgba(0,0,0,0.45)", padding: "7px 12px", borderRadius: 8, cursor: selectedBatchId ? "pointer" : "not-allowed", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" }}
+                          style={{ background: selectedBatchId ? "#fff" : "#f1f5f9", border: "1px solid #d8e2ea", color: selectedBatchId ? "#0A919B" : "rgba(0,0,0,0.45)", padding: "6px 11px", borderRadius: 8, cursor: selectedBatchId ? "pointer" : "not-allowed", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" }}
                         >
                           Edit
                         </button>
                       </div>
                     </div>
 
-                    <div style={{ padding: 16 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+                    <div style={{ padding: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 8 }}>
                         {group.reviewees.map(revieweeId => (
-                          <div key={`${group.reviewer_id}-${revieweeId}`} style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.06)", borderRadius: 10, padding: "9px 10px", minHeight: 50, boxSizing: "border-box", minWidth: 0 }}>
-                            <div style={{ height: 30, width: 30, borderRadius: 8, background: "rgba(0,0,0,0.10)", display: "flex", alignItems: "center", justifyContent: "center", color: "#000000", fontWeight: 500, fontSize: 11, flexShrink: 0 }}>
+                          <div key={`${group.reviewer_id}-${revieweeId}`} style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.06)", borderRadius: 9, padding: "7px 9px", minHeight: 42, boxSizing: "border-box", minWidth: 0 }}>
+                            <div style={{ height: 26, width: 26, borderRadius: 7, background: "rgba(0,0,0,0.10)", display: "flex", alignItems: "center", justifyContent: "center", color: "#000000", fontWeight: 500, fontSize: 10, flexShrink: 0 }}>
                               {getUserName(revieweeId).charAt(0)}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ margin: 0, color: "#000000", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(revieweeId)}</p>
-                              <p style={{ margin: "2px 0 0", color: "#000000", fontWeight: 500, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserDepartmentName(revieweeId)}</p>
+                              <p style={{ margin: 0, color: "#000000", fontWeight: 500, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(revieweeId)}</p>
+                              <p style={{ margin: "1px 0 0", color: "#000000", fontWeight: 500, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserDepartmentName(revieweeId)}</p>
                             </div>
                           </div>
                         ))}
