@@ -195,7 +195,7 @@ def get_departments(db: Session = Depends(get_db)):
 
 
 @app.post("/assign-reviews/")
-def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int = 1):
+def assign_reviews(num: int = 4, db: Session = Depends(get_db)):
     import datetime
 
     logger.info("Automatic review assignment started | requested_reviews_per_user=%s", num)
@@ -220,13 +220,23 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
             detail=f"Assignments per user cannot exceed {max_assignments_per_user}",
         )
 
-    if round_num < 1:
-        raise HTTPException(status_code=400, detail="Round number must be at least 1")
+    latest_batch = db.query(models.AssignmentBatch).order_by(
+        models.AssignmentBatch.id.desc()
+    ).first()
+
+    stored_round_value = latest_batch.round_value if latest_batch else None
+    round_num = stored_round_value or 0
+    if round_num == 0:
+        round_num += 1
 
     if round_num + num > len(users):
         raise HTTPException(
             status_code=400,
-            detail=f"Round number plus assignments per user cannot exceed {len(users)}",
+            detail=(
+                "The saved round position plus assignments per user cannot exceed "
+                f"{len(users)}. Choose {len(users) - round_num} or fewer assignments "
+                "for this batch."
+            ),
         )
 
     # Get current month year
@@ -266,6 +276,13 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
         last_index = start_index + num
         user_assign_dict[each_user_id] = all_users_rotation_list[start_index:last_index]
 
+    first_user_id = all_users_list[0]
+    first_user_assignments = user_assign_dict[first_user_id]
+    last_assigned_user_id = first_user_assignments[-1]
+    next_round_value = all_users_list.index(last_assigned_user_id) + 1
+    if next_round_value >= len(all_users_list):
+        next_round_value = 0
+
     self_assignments = [
         reviewer_id
         for reviewer_id, assigned_user_ids in user_assign_dict.items()
@@ -284,7 +301,8 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
     # Create new assignment batch only after generated assignments pass validation.
     batch = models.AssignmentBatch(
         month_year=month_year_str,
-        label=month_label
+        label=month_label,
+        round_value=next_round_value,
     )
     db.add(batch)
     db.commit()
@@ -336,6 +354,8 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
 
     return {
         "batch_id": batch.id,
+        "round_used": round_num,
+        "next_round_value": next_round_value,
         "reviewer_list": safe_review_list,
         "users": safe_users,
         "message": "Assignments created. Review the list before sending emails.",

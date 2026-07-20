@@ -68,7 +68,6 @@ function Dashboard() {
   const [filterReviewer, setFilterReviewer] = useState("");
   const [filterReviewee, setFilterReviewee] = useState("");
   const [assignmentsPerUser, setAssignmentsPerUser] = useState(4);
-  const [roundNumber, setRoundNumber] = useState(1);
   const [isBatchSending, setIsBatchSending] = useState(false);
   const [editingReviewerId, setEditingReviewerId] = useState(null);
   const [editRevieweeIds, setEditRevieweeIds] = useState([]);
@@ -96,9 +95,7 @@ function Dashboard() {
 
   const userCount = users.length;
   const assignmentsPerUserValue = Number(assignmentsPerUser);
-  const roundNumberValue = Number(roundNumber);
   const maxAssignmentsPerUser = Math.max(userCount - 1, 1);
-  const maxRoundNumber = Math.max(userCount - assignmentsPerUserValue, 1);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -178,10 +175,6 @@ function Dashboard() {
       showToast("Per Person must be at least 1", "error");
       return;
     }
-    if (!Number.isInteger(roundNumberValue) || roundNumberValue < 1) {
-      showToast("Round must be at least 1", "error");
-      return;
-    }
     if (userCount < 2) {
       showToast("At least two users are required to generate assignments", "error");
       return;
@@ -190,13 +183,8 @@ function Dashboard() {
       showToast(`Per Person cannot exceed ${maxAssignmentsPerUser}`, "error");
       return;
     }
-    if (roundNumberValue > maxRoundNumber) {
-      showToast(`Round cannot exceed ${maxRoundNumber} when Per Person is ${assignmentsPerUserValue}`, "error");
-      return;
-    }
-
     try {
-      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUserValue}&round_num=${roundNumberValue}`);
+      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUserValue}`);
       showToast("Assignments generated. Review the list before sending emails.", "success");
       // Auto-select the newly created batch
       const newBatchId = res.data.batch_id;
@@ -513,14 +501,6 @@ function Dashboard() {
   const latestBatchAssignments = latestBatch
     ? assignments.filter(a => String(a.batch_id) === String(latestBatch.id)).length
     : assignments.length;
-  const averageAssignments = reviewerCount ? (assignments.length / reviewerCount).toFixed(1) : "0.0";
-  const departmentSummary = departments
-    .map(dept => ({
-      ...dept,
-      userCount: users.filter(user => String(user.department_id) === String(dept.department_id)).length,
-    }))
-    .sort((a, b) => b.userCount - a.userCount);
-  const topDepartments = departmentSummary.slice(0, 4);
 
   const handleAdminSignIn = (event) => {
     event.preventDefault();
@@ -801,73 +781,26 @@ function Dashboard() {
 
         {/* DASHBOARD */}
         {activeTab === 'Dashboard' && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, animation: "fadeUp 0.4s ease" }}>
-            <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)", padding: 24 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1.4fr) minmax(220px, 0.6fr)", gap: 24, alignItems: "center" }}>
+          <div style={{ animation: "fadeUp 0.4s ease" }}>
+            <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: "24px 28px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
                 <div>
-                  <p style={{ margin: 0, color: "#0A919B", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.6 }}>Current Review Cycle</p>
-                  <h2 style={{ margin: "8px 0 8px", color: "#000000", fontSize: 30, fontWeight: 500 }}>{latestBatch?.label || "No batch generated"}</h2>
-                  <p style={{ margin: 0, color: "rgba(0,0,0,0.58)", fontSize: 14, maxWidth: 560 }}>Review the latest assignment batch, check coverage, and send feedback emails from the assignment hub.</p>
+                  <p style={{ margin: "0 0 6px", color: "#0A919B", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.7 }}>Current Review Cycle</p>
+                  <h2 style={{ margin: 0, color: "#000", fontSize: 26, fontWeight: 500 }}>{latestBatch?.label || "No batch generated"}</h2>
                 </div>
 
-                <div style={{ justifySelf: "end", width: "100%", maxWidth: 260, background: "linear-gradient(135deg, rgba(10,145,155,0.12), #ffffff)", border: "1px solid rgba(10,145,155,0.20)", borderRadius: 14, padding: 16 }}>
-                  <p style={{ margin: 0, color: "rgba(0,0,0,0.58)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Latest Assignments</p>
-                  <p style={{ margin: "6px 0 0", color: "#0A919B", fontSize: 38, lineHeight: 1, fontWeight: 600 }}>{latestBatchAssignments}</p>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 24 }}>
-                {[
-                  { label: "Users", value: users.length },
-                  { label: "Reviewers", value: reviewerCount },
-                  { label: "Reviewees", value: revieweeCount },
-                  { label: "Avg/User", value: averageAssignments },
-                ].map(item => (
-                  <div key={item.label} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14 }}>
-                    <p style={{ margin: 0, color: "#000000", fontSize: 24, fontWeight: 500 }}>{item.value}</p>
-                    <p style={{ margin: "4px 0 0", color: "rgba(0,0,0,0.52)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{item.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1.35fr) minmax(280px, 0.65fr)", gap: 18 }}>
-              <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, color: "#000000", fontSize: 16, fontWeight: 500 }}>Department Spread</h3>
-                  <span style={{ color: "rgba(0,0,0,0.52)", fontSize: 12, fontWeight: 500 }}>{users.length} users</span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {topDepartments.length > 0 ? topDepartments.map(dept => {
-                    const percent = users.length ? Math.round((dept.userCount / users.length) * 100) : 0;
-                    return (
-                      <div key={dept.department_id}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                          <span style={{ color: "#000000", fontSize: 13, fontWeight: 500 }}>{dept.department_name}</span>
-                          <span style={{ color: "rgba(0,0,0,0.58)", fontSize: 12, fontWeight: 500 }}>{dept.userCount}</span>
-                        </div>
-                        <div style={{ height: 8, background: "#edf2f7", borderRadius: 999, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${percent}%`, background: "#0A919B", borderRadius: 999 }} />
-                        </div>
-                      </div>
-                    );
-                  }) : (
-                    <p style={{ color: "rgba(0,0,0,0.45)", fontSize: 13, margin: 0 }}>No departments added yet.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="card-hover" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: 20 }}>
-                <h3 style={{ margin: "0 0 14px", color: "#000000", fontSize: 16, fontWeight: 500 }}>Recent Batches</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {batches.slice(0, 4).map(batch => (
-                    <button key={batch.id} onClick={() => { setActiveTab("Assign Reviews"); handleBatchChange(batch.id); }} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "11px 12px", cursor: "pointer", textAlign: "left" }}>
-                      <span style={{ color: "#000000", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{batch.label || batch.month_year}</span>
-                      <span style={{ color: "#0A919B", fontSize: 11, fontWeight: 600 }}>Open</span>
-                    </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Users", value: users.length },
+                    { label: "Reviewers", value: reviewerCount },
+                    { label: "Reviewees", value: revieweeCount },
+                    { label: "Assignments", value: latestBatchAssignments },
+                  ].map(item => (
+                    <div key={item.label} style={{ minWidth: 72 }}>
+                      <p style={{ margin: 0, color: "#000", fontSize: 22, lineHeight: 1.1, fontWeight: 500 }}>{item.value}</p>
+                      <p style={{ margin: "5px 0 0", color: "rgba(0,0,0,0.48)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.label}</p>
+                    </div>
                   ))}
-                  {batches.length === 0 && <p style={{ color: "rgba(0,0,0,0.45)", fontSize: 13, margin: 0 }}>No batches generated yet.</p>}
                 </div>
               </div>
             </div>
@@ -1071,16 +1004,6 @@ function Dashboard() {
                   />
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, background: "rgba(255,255,255,0.58)", border: "1px solid rgba(0,0,0,0.10)", padding: "6px 12px", borderRadius: 8 }}>
-                  <label style={{ color: "rgba(0,0,0,0.58)", fontWeight: 500, margin: 0, whiteSpace: "nowrap" }}>Round:</label>
-                  <input 
-                    type="number" min="1" max={maxRoundNumber}
-                    value={roundNumber} 
-                    onChange={(e) => setRoundNumber(e.target.value)}
-                    style={{ width: 40, textAlign: "center", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, outline: "none", padding: "4px 0", fontSize: 12 }}
-                  />
-                </div>
-                
                 <button onClick={assignReviews} className="btn-primary" style={{
                   background: "#0A919B", color: "#fff",
                   padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
