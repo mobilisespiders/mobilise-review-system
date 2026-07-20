@@ -13,9 +13,14 @@ from collections import defaultdict
 
 logger = setup_logging()
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+DEFAULT_ALLOWED_ORIGINS = (
+    "http://localhost:3000,"
+    "https://mti-review.vercel.app"
+)
 ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    origin.strip().strip("\"'").rstrip("/")
+    for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",")
     if origin.strip()
 ]
 
