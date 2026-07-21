@@ -1,10 +1,11 @@
 import os  
 import logging
-import smtplib
+import json
 from datetime import date, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
 from dotenv import load_dotenv
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
@@ -12,6 +13,7 @@ LOGO_URL = "https://imgh.in/host/sojylu"
 Email_banner = "https://marketingcampaign.online/Mobilise_website/mti/email_banner.jpeg"
 load_dotenv(ENV_FILE)
 logger = logging.getLogger("mti")
+RESEND_EMAIL_URL = "https://api.resend.com/emails"
 
 def _review_period(today=None):
     today = today or date.today()
@@ -34,13 +36,15 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
     assigned_users: list of dicts with 'name', 'email', 'role' keys
     """
     try:
-        sender_email = os.getenv("EMAIL_USER", "").strip()
-        sender_password = os.getenv("EMAIL_PASS", "").replace(" ", "").strip()
-        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
-        smtp_port = int(os.getenv("SMTP_PORT", "587").strip())
+        resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
+        sender_email = os.getenv("EMAIL_FROM", "").strip()
 
-        if not sender_email or not sender_password:
-            logger.error("Email configuration missing | EMAIL_USER_set=%s EMAIL_PASS_set=%s", bool(sender_email), bool(sender_password))
+        if not resend_api_key or not sender_email:
+            logger.error(
+                "Resend configuration missing | RESEND_API_KEY_set=%s EMAIL_FROM_set=%s",
+                bool(resend_api_key),
+                bool(sender_email),
+            )
             return False
 
         review_period = _review_period()
@@ -176,29 +180,50 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
         </html>
         """
 
-        msg = MIMEMultipart()
-        msg['From'] = f"MOBILISE <{sender_email}>"
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        payload = json.dumps({
+            "from": sender_email,
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        }).encode("utf-8")
+        request = Request(
+            RESEND_EMAIL_URL,
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {resend_api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "mti-review-system/1.0",
+            },
+            method="POST",
+        )
 
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
+        with urlopen(request, timeout=30) as response:
+            response_data = json.loads(response.read().decode("utf-8"))
 
-        logger.info("HTML email sent | to_email=%s subject=%s", to_email, subject)
+        logger.info(
+            "HTML email sent through Resend | to_email=%s subject=%s email_id=%s",
+            to_email,
+            subject,
+            response_data.get("id"),
+        )
         return True
 
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error("SMTP authentication failed | code=%s response=%s", e.smtp_code, e.smtp_error)
+    except HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        logger.error(
+            "Resend API rejected email | to_email=%s status_code=%s response=%s",
+            to_email,
+            exc.code,
+            error_body,
+        )
         return False
-    except smtplib.SMTPRecipientsRefused as e:
-        logger.error("SMTP recipients refused | recipients=%s", list(e.recipients.keys()))
+    except URLError as exc:
+        logger.error(
+            "Resend API connection failed | to_email=%s error=%s",
+            to_email,
+            exc.reason,
+        )
         return False
-    except smtplib.SMTPException as e:
-        logger.error("SMTP error while sending email | to_email=%s error=%s", to_email, e)
-        return False
-    except Exception as e:
-        logger.exception("HTML email failed | to_email=%s error=%s", to_email, e)
+    except Exception as exc:
+        logger.exception("HTML email failed | to_email=%s error=%s", to_email, exc)
         return False

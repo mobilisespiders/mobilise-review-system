@@ -75,15 +75,15 @@ Backend:
 
 ```env
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:PORT/DATABASE
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app,https://your-vercel-preview-url.vercel.app
 ```
 
 Frontend:
 
 ```env
-REACT_APP_API_URL=https://program-frog-kit-want.trycloudflare.com
+REACT_APP_API_URL=https://mobilise-review-system.onrender.com
 ```
 
 ## Step 1: Push To GitHub
@@ -144,8 +144,8 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 ```env
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:4000/DATABASE
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000
 ```
 
@@ -195,7 +195,7 @@ build
 8. Add variable:
 
 ```env
-REACT_APP_API_URL=https://program-frog-kit-want.trycloudflare.com
+REACT_APP_API_URL=https://mobilise-review-system.onrender.com
 ```
 
 9. Deploy.
@@ -263,3 +263,5 @@ Database:
 - Railway pricing/plans: https://docs.railway.com/pricing/plans
 - Render free limitations: https://render.com/docs/free
 - TiDB Cloud plans: https://docs.pingcap.com/tidbcloud/select-cluster-tier/
+
+Error: The saved round position plus assignments per user cannot exceed 18. Choose 2 or fewer assignments for this batch.

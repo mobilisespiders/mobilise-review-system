@@ -91,8 +91,8 @@ Create `backend/.env`:
 
 ```env
 DATABASE_URL=your_database_url
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
@@ -126,7 +126,7 @@ copy .env.example .env
 Then edit `frontend/.env` if your backend is not running on:
 
 ```env
-REACT_APP_API_URL=https://program-frog-kit-want.trycloudflare.com
+REACT_APP_API_URL=https://mobilise-review-system.onrender.com
 ```
 
 Frontend URL:
@@ -135,7 +135,7 @@ Frontend URL:
 http://localhost:3000
 ```
 
-For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL. For the current Cloudflare Tunnel backend, use `https://program-frog-kit-want.trycloudflare.com`.
+For production, set `REACT_APP_API_URL` in the frontend hosting provider to the deployed backend URL. For the current Cloudflare Tunnel backend, use `https://mobilise-review-system.onrender.com`.
 
 ## Main Workflows
 

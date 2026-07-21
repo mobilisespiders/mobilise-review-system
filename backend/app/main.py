@@ -13,9 +13,14 @@ from collections import defaultdict
 
 logger = setup_logging()
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+DEFAULT_ALLOWED_ORIGINS = (
+    "http://localhost:3000,"
+    "https://mti-review.vercel.app"
+)
 ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    origin.strip().strip("\"'").rstrip("/")
+    for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",")
     if origin.strip()
 ]
 
@@ -195,7 +200,7 @@ def get_departments(db: Session = Depends(get_db)):
 
 
 @app.post("/assign-reviews/")
-def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int = 1):
+def assign_reviews(num: int = 4, db: Session = Depends(get_db)):
     import datetime
 
     logger.info("Automatic review assignment started | requested_reviews_per_user=%s", num)
@@ -220,14 +225,17 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
             detail=f"Assignments per user cannot exceed {max_assignments_per_user}",
         )
 
-    if round_num < 1:
-        raise HTTPException(status_code=400, detail="Round number must be at least 1")
+    latest_batch = db.query(models.AssignmentBatch).order_by(
+        models.AssignmentBatch.id.desc()
+    ).first()
 
-    if round_num + num > len(users):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Round number plus assignments per user cannot exceed {len(users)}",
-        )
+    stored_round_value = latest_batch.round_value if latest_batch else None
+    max_rotation_offset = len(users) - 1
+    if not stored_round_value:
+        round_num = 1
+    else:
+        # Keep old/out-of-range database values inside the valid non-self range.
+        round_num = ((stored_round_value - 1) % max_rotation_offset) + 1
 
     # Get current month year
     now = datetime.datetime.now()
@@ -258,13 +266,26 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
             else:
                 pass
 
-    all_users_rotation_list = all_users_list + all_users_list[:num + round_num]
-    user_assign_dict = dict()
+    # Cycle through offsets 1..N-1. Offset 0 is deliberately excluded because
+    # it would assign each reviewer to themselves when the rotation wraps.
+    assignment_offsets = [
+        ((round_num - 1 + position) % max_rotation_offset) + 1
+        for position in range(num)
+    ]
+    user_assign_dict = {
+        reviewer_id: [
+            all_users_list[(reviewer_index + offset) % len(all_users_list)]
+            for offset in assignment_offsets
+        ]
+        for reviewer_index, reviewer_id in enumerate(all_users_list)
+    }
 
-    for element_index, each_user_id in enumerate(all_users_list):
-        start_index = element_index + round_num
-        last_index = start_index + num
-        user_assign_dict[each_user_id] = all_users_rotation_list[start_index:last_index]
+    next_round_value = (
+        (round_num - 1 + num) % max_rotation_offset
+    ) + 1
+    if next_round_value == 1:
+        # Preserve the database convention: stored 0 means start again at 1.
+        next_round_value = 0
 
     self_assignments = [
         reviewer_id
@@ -284,7 +305,8 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
     # Create new assignment batch only after generated assignments pass validation.
     batch = models.AssignmentBatch(
         month_year=month_year_str,
-        label=month_label
+        label=month_label,
+        round_value=next_round_value,
     )
     db.add(batch)
     db.commit()
@@ -336,6 +358,8 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db), round_num: int =
 
     return {
         "batch_id": batch.id,
+        "round_used": round_num,
+        "next_round_value": next_round_value,
         "reviewer_list": safe_review_list,
         "users": safe_users,
         "message": "Assignments created. Review the list before sending emails.",

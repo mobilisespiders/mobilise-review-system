@@ -8,11 +8,13 @@ const ADMIN_ACCOUNTS = [
 ];
 
 // Toast Notification Component
-function Toast({ message, type, onClose }) {
+function Toast({ id, message, type, duration = 5000, onClose }) {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000);
+    if (duration === null) return undefined;
+
+    const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [id, duration, onClose]);
 
   const colors = {
     success: { bg: "#0A919B", icon: <CheckIcon size={16} /> },
@@ -68,7 +70,7 @@ function Dashboard() {
   const [filterReviewer, setFilterReviewer] = useState("");
   const [filterReviewee, setFilterReviewee] = useState("");
   const [assignmentsPerUser, setAssignmentsPerUser] = useState(4);
-  const [roundNumber, setRoundNumber] = useState(1);
+  const [isGeneratingAssignments, setIsGeneratingAssignments] = useState(false);
   const [isBatchSending, setIsBatchSending] = useState(false);
   const [editingReviewerId, setEditingReviewerId] = useState(null);
   const [editRevieweeIds, setEditRevieweeIds] = useState([]);
@@ -90,15 +92,14 @@ function Dashboard() {
 
   // Toast state
   const [toast, setToast] = useState(null);
-  const showToast = useCallback((message, type = "info") => {
-    setToast({ message, type });
+  const showToast = useCallback((message, type = "info", duration = 5000) => {
+    setToast({ id: Date.now(), message, type, duration });
   }, []);
+  const hideToast = useCallback(() => setToast(null), []);
 
   const userCount = users.length;
   const assignmentsPerUserValue = Number(assignmentsPerUser);
-  const roundNumberValue = Number(roundNumber);
   const maxAssignmentsPerUser = Math.max(userCount - 1, 1);
-  const maxRoundNumber = Math.max(userCount - assignmentsPerUserValue, 1);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -174,12 +175,10 @@ function Dashboard() {
   };
 
   const assignReviews = async () => {
+    if (isGeneratingAssignments) return;
+
     if (!Number.isInteger(assignmentsPerUserValue) || assignmentsPerUserValue < 1) {
       showToast("Per Person must be at least 1", "error");
-      return;
-    }
-    if (!Number.isInteger(roundNumberValue) || roundNumberValue < 1) {
-      showToast("Round must be at least 1", "error");
       return;
     }
     if (userCount < 2) {
@@ -190,13 +189,12 @@ function Dashboard() {
       showToast(`Per Person cannot exceed ${maxAssignmentsPerUser}`, "error");
       return;
     }
-    if (roundNumberValue > maxRoundNumber) {
-      showToast(`Round cannot exceed ${maxRoundNumber} when Per Person is ${assignmentsPerUserValue}`, "error");
-      return;
-    }
+
+    setIsGeneratingAssignments(true);
+    showToast("Generating assignment list...", "info", null);
 
     try {
-      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUserValue}&round_num=${roundNumberValue}`);
+      const res = await axios.post(`${BASE_URL}/assign-reviews/?num=${assignmentsPerUserValue}`);
       showToast("Assignments generated. Review the list before sending emails.", "success");
       // Auto-select the newly created batch
       const newBatchId = res.data.batch_id;
@@ -208,6 +206,8 @@ function Dashboard() {
     } catch (error) {
       console.error(error);
       showToast(error.response?.data?.detail || "Failed to generate assignments", "error");
+    } finally {
+      setIsGeneratingAssignments(false);
     }
   };
 
@@ -507,6 +507,13 @@ function Dashboard() {
     return groups;
   }, {})).sort((a, b) => getUserName(a.reviewer_id).localeCompare(getUserName(b.reviewer_id)));
 
+  const reviewerCount = new Set(assignments.map(a => a.reviewer_id)).size;
+  const revieweeCount = new Set(assignments.map(a => a.reviewee_id)).size;
+  const latestBatch = batches[0];
+  const latestBatchAssignments = latestBatch
+    ? assignments.filter(a => String(a.batch_id) === String(latestBatch.id)).length
+    : assignments.length;
+
   const handleAdminSignIn = (event) => {
     event.preventDefault();
     const cleanUserId = adminLogin.user_id.trim();
@@ -750,7 +757,15 @@ function Dashboard() {
         </div>
 
         {/* Toast */}
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        {toast && (
+          <Toast
+            id={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration}
+            onClose={hideToast}
+          />
+        )}
 
         {/* DASHBOARD */}
         {activeTab === 'Dashboard' && (
@@ -779,6 +794,34 @@ function Dashboard() {
                     <p style={{ fontSize: 12, fontWeight: 500, color: "rgba(0,0,0,0.42)", margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DASHBOARD */}
+        {activeTab === 'Dashboard' && (
+          <div style={{ animation: "fadeUp 0.4s ease" }}>
+            <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)", padding: "24px 28px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: "0 0 6px", color: "#0A919B", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.7 }}>Current Review Cycle</p>
+                  <h2 style={{ margin: 0, color: "#000", fontSize: 26, fontWeight: 500 }}>{latestBatch?.label || "No batch generated"}</h2>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Users", value: users.length },
+                    { label: "Reviewers", value: reviewerCount },
+                    { label: "Reviewees", value: revieweeCount },
+                    { label: "Assignments", value: latestBatchAssignments },
+                  ].map(item => (
+                    <div key={item.label} style={{ minWidth: 72 }}>
+                      <p style={{ margin: 0, color: "#000", fontSize: 22, lineHeight: 1.1, fontWeight: 500 }}>{item.value}</p>
+                      <p style={{ margin: "5px 0 0", color: "rgba(0,0,0,0.48)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -980,25 +1023,24 @@ function Dashboard() {
                   />
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, background: "rgba(255,255,255,0.58)", border: "1px solid rgba(0,0,0,0.10)", padding: "6px 12px", borderRadius: 8 }}>
-                  <label style={{ color: "rgba(0,0,0,0.58)", fontWeight: 500, margin: 0, whiteSpace: "nowrap" }}>Round:</label>
-                  <input 
-                    type="number" min="1" max={maxRoundNumber}
-                    value={roundNumber} 
-                    onChange={(e) => setRoundNumber(e.target.value)}
-                    style={{ width: 40, textAlign: "center", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, outline: "none", padding: "4px 0", fontSize: 12 }}
-                  />
-                </div>
-                
-                <button onClick={assignReviews} className="btn-primary" style={{
-                  background: "#0A919B", color: "#fff",
-                  padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+                <button onClick={assignReviews} disabled={isGeneratingAssignments} className="btn-primary" style={{
+                  background: isGeneratingAssignments ? "rgba(0,0,0,0.42)" : "#0A919B", color: "#fff",
+                  padding: "8px 16px", borderRadius: 8, border: "none", cursor: isGeneratingAssignments ? "not-allowed" : "pointer",
                   fontWeight: 500, display: "flex", alignItems: "center", gap: 6, fontSize: 12, whiteSpace: "nowrap",
                 }}>
-                  <span>Generate New</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  {isGeneratingAssignments ? (
+                    <>
+                      <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Generate New</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </>
+                  )}
                 </button>
 
                 <button

@@ -27,6 +27,8 @@ class AssignmentBatch(Base):
     generated_at = Column(TIMESTAMP, server_default=func.now())
     month_year = Column(String(7))  # e.g. "2026-04"
     label = Column(String(50))      # e.g. "April 2026"
+    # Starting rotation index for the next automatically generated batch.
+    round_value = Column(Integer, nullable=True)
 
 
 class ReviewAssignment(Base):

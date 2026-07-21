@@ -15,6 +15,15 @@ Base = declarative_base()
 DATABASE_URL = os.getenv("DATABASE_URL")
 DATABASE_SSL_CA_PATH = os.getenv("DATABASE_SSL_CA_PATH", "").strip()
 
+# Aiven commonly provides a generic mysql:// URL. SQLAlchemy otherwise tries
+# to use MySQLdb, while this project installs mysql-connector-python.
+if DATABASE_URL and DATABASE_URL.startswith("mysql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "mysql://",
+        "mysql+mysqlconnector://",
+        1,
+    )
+
 engine = None
 SessionLocal = None
 
