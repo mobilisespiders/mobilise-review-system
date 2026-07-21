@@ -76,7 +76,7 @@ function Dashboard() {
   const [editRevieweeIds, setEditRevieweeIds] = useState([]);
   const [isSavingAssignments, setIsSavingAssignments] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("Welcome");
+  const [activeTab, setActiveTab] = useState("Dashboard");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => sessionStorage.getItem("mti_admin_auth") === "true");
   const [adminLogin, setAdminLogin] = useState({ user_id: "", password: "" });
@@ -537,7 +537,7 @@ function Dashboard() {
     sessionStorage.removeItem("mti_admin_auth");
     sessionStorage.removeItem("mti_admin_user");
     setIsAdminAuthenticated(false);
-    setActiveTab("Welcome");
+    setActiveTab("Dashboard");
     setUsers([]);
     setDepartments([]);
     setAssignments([]);
@@ -767,8 +767,8 @@ function Dashboard() {
           />
         )}
 
-        {/* Welcome */}
-        {activeTab === 'Welcome' && (
+        {/* DASHBOARD */}
+        {activeTab === 'Dashboard' && (
           <div style={{ animation: "fadeUp 0.5s ease" }}>
             <div className="card-hover" style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -964,7 +964,6 @@ function Dashboard() {
 
           </div>
         )}
-
         {/* Assign Reviews */}
         {activeTab === 'Assign Reviews' && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20, animation: "fadeUp 0.4s ease" }}>
@@ -1143,45 +1142,45 @@ function Dashboard() {
               </div>
             )}
 
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 8px 2px 0", maxHeight: 620, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 8px 2px 0", maxHeight: 620, display: "flex", flexDirection: "column", gap: 10 }}>
               {assignmentGroups.length > 0 ? (
                 assignmentGroups.map(group => (
                   <div key={group.reviewer_id} style={{ border: "1px solid #dfe8ef", borderRadius: 12, background: "#fff", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.04)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "14px 16px", background: "rgba(255,255,255,0.58)", borderBottom: "1px solid rgba(0,0,0,0.10)", borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 220, flex: "1 1 280px" }}>
-                        <div style={{ height: 38, width: 38, borderRadius: 10, background: "linear-gradient(135deg, #dbeafe, #bfdbfe)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontWeight: 500, fontSize: 13, flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "rgba(255,255,255,0.58)", borderBottom: "1px solid rgba(0,0,0,0.10)", borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220, flex: "1 1 280px" }}>
+                        <div style={{ height: 34, width: 34, borderRadius: 9, background: "linear-gradient(135deg, #dbeafe, #bfdbfe)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontWeight: 500, fontSize: 12, flexShrink: 0 }}>
                           {getUserName(group.reviewer_id).charAt(0)}
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ fontWeight: 500, color: "#000000", margin: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(group.reviewer_id)}</p>
                           <p style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserEmail(group.reviewer_id)}</p>
-                          <span style={{ display: "inline-block", marginTop: 6, background: "rgba(0,0,0,0.06)", color: "#000000", padding: "3px 8px", borderRadius: 6, fontWeight: 500, fontSize: 10 }}>{getUserDepartmentName(group.reviewer_id)}</span>
+                          <span style={{ display: "inline-block", marginTop: 4, background: "rgba(0,0,0,0.06)", color: "#000000", padding: "2px 7px", borderRadius: 6, fontWeight: 500, fontSize: 10 }}>{getUserDepartmentName(group.reviewer_id)}</span>
                         </div>
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end", flex: "0 0 auto" }}>
-                        <span style={{ background: "#e2e2e0", color: "#0A919B", padding: "5px 10px", borderRadius: 999, fontWeight: 500, fontSize: 11, whiteSpace: "nowrap" }}>{group.reviewees.length} assigned</span>
+                        <span style={{ background: "#e2e2e0", color: "#0A919B", padding: "4px 9px", borderRadius: 999, fontWeight: 500, fontSize: 11, whiteSpace: "nowrap" }}>{group.reviewees.length} assigned</span>
                         <button
                           onClick={() => startEditAssignments(group.reviewer_id)}
                           disabled={!selectedBatchId}
                           title={selectedBatchId ? "Edit this reviewer list" : "Select a batch to edit"}
-                          style={{ background: selectedBatchId ? "#fff" : "#f1f5f9", border: "1px solid #d8e2ea", color: selectedBatchId ? "#0A919B" : "rgba(0,0,0,0.45)", padding: "7px 12px", borderRadius: 8, cursor: selectedBatchId ? "pointer" : "not-allowed", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" }}
+                          style={{ background: selectedBatchId ? "#fff" : "#f1f5f9", border: "1px solid #d8e2ea", color: selectedBatchId ? "#0A919B" : "rgba(0,0,0,0.45)", padding: "6px 11px", borderRadius: 8, cursor: selectedBatchId ? "pointer" : "not-allowed", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" }}
                         >
                           Edit
                         </button>
                       </div>
                     </div>
 
-                    <div style={{ padding: 16 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+                    <div style={{ padding: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 8 }}>
                         {group.reviewees.map(revieweeId => (
-                          <div key={`${group.reviewer_id}-${revieweeId}`} style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.06)", borderRadius: 10, padding: "9px 10px", minHeight: 50, boxSizing: "border-box", minWidth: 0 }}>
-                            <div style={{ height: 30, width: 30, borderRadius: 8, background: "rgba(0,0,0,0.10)", display: "flex", alignItems: "center", justifyContent: "center", color: "#000000", fontWeight: 500, fontSize: 11, flexShrink: 0 }}>
+                          <div key={`${group.reviewer_id}-${revieweeId}`} style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.06)", borderRadius: 9, padding: "7px 9px", minHeight: 42, boxSizing: "border-box", minWidth: 0 }}>
+                            <div style={{ height: 26, width: 26, borderRadius: 7, background: "rgba(0,0,0,0.10)", display: "flex", alignItems: "center", justifyContent: "center", color: "#000000", fontWeight: 500, fontSize: 10, flexShrink: 0 }}>
                               {getUserName(revieweeId).charAt(0)}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ margin: 0, color: "#000000", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(revieweeId)}</p>
-                              <p style={{ margin: "2px 0 0", color: "#000000", fontWeight: 500, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserDepartmentName(revieweeId)}</p>
+                              <p style={{ margin: 0, color: "#000000", fontWeight: 500, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserName(revieweeId)}</p>
+                              <p style={{ margin: "1px 0 0", color: "#000000", fontWeight: 500, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getUserDepartmentName(revieweeId)}</p>
                             </div>
                           </div>
                         ))}
