@@ -263,3 +263,5 @@ Database:
 - Railway pricing/plans: https://docs.railway.com/pricing/plans
 - Render free limitations: https://render.com/docs/free
 - TiDB Cloud plans: https://docs.pingcap.com/tidbcloud/select-cluster-tier/
+
+Error: The saved round position plus assignments per user cannot exceed 18. Choose 2 or fewer assignments for this batch.

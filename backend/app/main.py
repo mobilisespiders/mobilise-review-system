@@ -230,19 +230,12 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db)):
     ).first()
 
     stored_round_value = latest_batch.round_value if latest_batch else None
-    round_num = stored_round_value or 0
-    if round_num == 0:
-        round_num += 1
-
-    if round_num + num > len(users):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "The saved round position plus assignments per user cannot exceed "
-                f"{len(users)}. Choose {len(users) - round_num} or fewer assignments "
-                "for this batch."
-            ),
-        )
+    max_rotation_offset = len(users) - 1
+    if not stored_round_value:
+        round_num = 1
+    else:
+        # Keep old/out-of-range database values inside the valid non-self range.
+        round_num = ((stored_round_value - 1) % max_rotation_offset) + 1
 
     # Get current month year
     now = datetime.datetime.now()
@@ -273,19 +266,25 @@ def assign_reviews(num: int = 4, db: Session = Depends(get_db)):
             else:
                 pass
 
-    all_users_rotation_list = all_users_list + all_users_list[:num + round_num]
-    user_assign_dict = dict()
+    # Cycle through offsets 1..N-1. Offset 0 is deliberately excluded because
+    # it would assign each reviewer to themselves when the rotation wraps.
+    assignment_offsets = [
+        ((round_num - 1 + position) % max_rotation_offset) + 1
+        for position in range(num)
+    ]
+    user_assign_dict = {
+        reviewer_id: [
+            all_users_list[(reviewer_index + offset) % len(all_users_list)]
+            for offset in assignment_offsets
+        ]
+        for reviewer_index, reviewer_id in enumerate(all_users_list)
+    }
 
-    for element_index, each_user_id in enumerate(all_users_list):
-        start_index = element_index + round_num
-        last_index = start_index + num
-        user_assign_dict[each_user_id] = all_users_rotation_list[start_index:last_index]
-
-    first_user_id = all_users_list[0]
-    first_user_assignments = user_assign_dict[first_user_id]
-    last_assigned_user_id = first_user_assignments[-1]
-    next_round_value = all_users_list.index(last_assigned_user_id) + 1
-    if next_round_value >= len(all_users_list):
+    next_round_value = (
+        (round_num - 1 + num) % max_rotation_offset
+    ) + 1
+    if next_round_value == 1:
+        # Preserve the database convention: stored 0 means start again at 1.
         next_round_value = 0
 
     self_assignments = [
