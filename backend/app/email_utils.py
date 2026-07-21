@@ -147,7 +147,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                                                         <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Lowlights are points where there is an opportunity for the person to improve. These don't necessarily mean negatives, rather, they are advice that could help make them better. Please don't leave it without pointers.</td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Your input is valuable and will remain confidential. Please ensure it is submitted by the end of the day on <strong>14 July 2026</strong>.</td>
+                                                        <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Your input is valuable and will remain confidential. Please ensure it is submitted by the end of the day on <strong>23 July 2026</strong>.</td>
                                                     </tr>
                                                     <tr>
                                                         <td style="padding: 0 0 12px 0; color: #4a5568; font-size: 14px; line-height: 22px;">Kindly note that no reminders will be sent, and failure to complete the feedback may impact your evaluation score.</td>
