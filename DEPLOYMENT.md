@@ -75,8 +75,8 @@ Backend:
 
 ```env
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:PORT/DATABASE
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app,https://your-vercel-preview-url.vercel.app
 ```
 
@@ -144,8 +144,8 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 ```env
 DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@HOST:4000/DATABASE
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000
 ```
 

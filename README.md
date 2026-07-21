@@ -91,8 +91,8 @@ Create `backend/.env`:
 
 ```env
 DATABASE_URL=your_database_url
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=MTI Admin <reviews@your_verified_domain.com>
 ALLOWED_ORIGINS=http://localhost:3000,https://mti-review.vercel.app
 ```
 
