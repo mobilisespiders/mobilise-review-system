@@ -97,7 +97,7 @@ def send_html_email(to_email, subject, recipient_name, assigned_users):
                                             <td style="height: 45px; line-height: 45px; font-size: 1px;">&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td align="left" style="color: #ffffff; font-size: 30px; line-height: 36px; font-weight: 700;">MIT Feedback</td>
+                                            <td align="left" style="color: #ffffff; font-size: 30px; line-height: 36px; font-weight: 700;">MTI Feedback</td>
                                         </tr>
                                     </table>
                                 </td>
